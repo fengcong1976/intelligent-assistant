@@ -1,0 +1,28 @@
+{
+  "name": "app_agent",
+  "display_name": "应用",
+  "icon": "📱",
+  "description": "应用管理智能体 - 启动和管理应用程序",
+  "capabilities": [
+    "launch_app",
+    "close_app",
+    "list_apps",
+    "search_app",
+    "install_app",
+    "uninstall_app"
+  ],
+  "supported_file_types": [],
+  "version": "1.0.0",
+  "author": "",
+  "hidden": false,
+  "priority": 5,
+  "keywords": [
+    "应用",
+    "打开",
+    "启动",
+    "程序",
+    "关闭应用",
+    "安装应用"
+  ],
+  "help": "## 📱 应用智能体\n\n### 功能说明\n应用智能体可以管理电脑上的应用程序。\n\n### 支持的操作\n- **启动应用**：打开指定的应用程序\n- **关闭应用**：关闭正在运行的应用\n- **列出应用**：查看已安装的应用列表\n- **搜索应用**：搜索应用程序\n- **安装应用**：安装新的应用程序\n- **卸载应用**：卸载应用程序\n\n### 使用示例\n- \"打开微信\" - 启动应用\n- \"关闭Chrome\" - 关闭应用\n- \"已安装应用列表\" - 列出应用\n- \"搜索应用 VSCode\" - 搜索应用\n- \"安装应用\" - 安装新应用\n- \"卸载应用\" - 卸载应用"
+}

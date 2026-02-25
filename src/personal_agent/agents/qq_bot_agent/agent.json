@@ -1,0 +1,24 @@
+{
+  "name": "qq_bot_agent",
+  "display_name": "QQ机器人",
+  "icon": "🤖",
+  "description": "QQ机器人智能体 - 提供QQ消息通信渠道，支持群聊、私聊、频道等场景",
+  "version": "1.0.0",
+  "priority": 99,
+  "capabilities": ["qq_bot", "qq_message", "qq_group", "qq_channel"],
+  "actions": {
+    "start": {
+      "description": "启动QQ机器人",
+      "params": []
+    },
+    "stop": {
+      "description": "停止QQ机器人",
+      "params": []
+    },
+    "status": {
+      "description": "查看QQ机器人状态",
+      "params": []
+    }
+  },
+  "help": "## 🤖 QQ机器人智能体\n\n### 功能说明\nQQ机器人智能体提供QQ消息通信渠道，让智能助手可以通过QQ与用户交互。\n\n### 支持的操作\n- **启动机器人**：启动QQ机器人服务\n- **停止机器人**：停止QQ机器人服务\n- **状态查询**：查看机器人运行状态\n\n### 使用示例\n- \"启动QQ机器人\" - 启动服务\n- \"停止QQ机器人\" - 停止服务\n- \"QQ机器人状态\" - 查看状态\n\n### 支持的场景\n- 群聊消息\n- 私聊消息\n- QQ频道\n\n### 注意事项\n需要配置QQ机器人账号信息"
+}

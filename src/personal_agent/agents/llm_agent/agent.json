@@ -1,0 +1,16 @@
+{
+  "name": "llm_agent",
+  "display_name": "LLM对话",
+  "icon": "🤖",
+  "description": "LLM对话智能体 - 直接与大模型对话，不经过意图识别",
+  "version": "1.0.0",
+  "priority": 5,
+  "capabilities": ["llm_chat", "direct_chat", "conversation"],
+  "actions": {
+    "chat": {
+      "description": "直接与LLM对话",
+      "params": ["query"]
+    }
+  },
+  "help": "## 🤖 LLM对话智能体\n\n### 功能说明\nLLM对话智能体可以直接与大模型对话，不经过意图识别，适合需要深度对话的场景。\n\n### 支持的操作\n- **直接对话**：与大模型进行多轮对话\n- **知识问答**：询问各种知识问题\n- **创意写作**：让AI帮助写作\n- **代码生成**：生成代码片段\n\n### 使用示例\n- \"问大模型 什么是量子计算\" - 知识问答\n- \"和AI聊天，帮我写一首诗\" - 创意写作\n- \"问ai 如何学习Python\" - 学习建议\n\n### 特点\n- 支持多轮对话上下文\n- 不经过意图识别，直接响应\n- 适合需要深度思考的问题"
+}

@@ -1,0 +1,27 @@
+{
+  "name": "email_agent",
+  "display_name": "邮件",
+  "icon": "📧",
+  "description": "邮件管理智能体 - 发送和接收邮件",
+  "capabilities": [
+    "send_email",
+    "read_email",
+    "list_emails",
+    "search_email",
+    "delete_email"
+  ],
+  "supported_file_types": [],
+  "version": "1.0.0",
+  "author": "",
+  "hidden": false,
+  "priority": 5,
+  "keywords": [
+    "邮件",
+    "发送邮件",
+    "收邮件",
+    "email",
+    "写信",
+    "发邮件"
+  ],
+  "help": "## 📧 邮件智能体\n\n### 功能说明\n邮件智能体可以帮您发送、接收和管理电子邮件。\n\n### 支持的操作\n- **发送邮件**：撰写并发送邮件\n- **读取邮件**：读取邮件内容\n- **列出邮件**：查看收件箱邮件列表\n- **搜索邮件**：按关键词搜索邮件\n- **删除邮件**：删除邮件\n\n### 使用示例\n- \"发送邮件给张三\" - 发送邮件\n- \"写信给 test@example.com 标题是测试 内容是你好\" - 发送邮件\n- \"查看收件箱\" - 列出邮件\n- \"读取最新邮件\" - 读取邮件\n- \"搜索包含项目 的邮件\" - 搜索邮件\n\n### 配置要求\n需要在设置中配置邮箱账户信息（SMTP/IMAP服务器）"
+}

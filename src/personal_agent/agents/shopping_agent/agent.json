@@ -1,0 +1,23 @@
+{
+  "name": "shopping_agent",
+  "display_name": "购物",
+  "icon": "🛒",
+  "description": "购物助手智能体，支持商品比价、优惠信息聚合、购物清单管理、个性化商品推荐等功能",
+  "capabilities": [
+    "search_products",
+    "compare_prices",
+    "query_deals",
+    "create_list",
+    "list_lists",
+    "update_list",
+    "delete_list",
+    "add_item",
+    "update_item",
+    "delete_item",
+    "toggle_item",
+    "recommend_products"
+  ],
+  "hidden": false,
+  "priority": 5,
+  "keywords": ["购物", "比价", "优惠", "清单", "推荐", "shopping", "price comparison", "deals"]
+}

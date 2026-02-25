@@ -1,0 +1,16 @@
+{
+  "name": "image_agent",
+  "display_name": "图片生成",
+  "icon": "🎨",
+  "description": "图片生成智能体 - 使用AI生成图片",
+  "version": "1.0.0",
+  "priority": 5,
+  "capabilities": ["text_to_image", "image_generation"],
+  "actions": {
+    "generate": {
+      "description": "根据文字描述生成图片",
+      "params": ["prompt", "style", "size"]
+    }
+  },
+  "help": "## 🎨 图片生成智能体\n\n### 功能说明\n图片生成智能体使用阿里云通义万相API，可以根据文字描述生成图片。\n\n### 支持的操作\n- **文生图**：根据文字描述生成图片\n- **AI绘画**：使用AI创作艺术作品\n- **风格选择**：支持多种艺术风格\n\n### 使用示例\n- \"生成一张图片：夕阳下的海滩\" - 生成风景图\n- \"画一只可爱的猫咪\" - 生成动物图\n- \"AI绘画：未来城市\" - 创意绘画\n- \"画一幅水墨风格的山水画\" - 指定风格\n\n### 支持的风格\n- 写实风格\n- 动漫风格\n- 水墨风格\n- 油画风格\n- 3D渲染"
+}

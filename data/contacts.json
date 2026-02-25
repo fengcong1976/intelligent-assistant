@@ -1,0 +1,16 @@
+{
+  "示例联系人1": {
+    "name": "示例联系人1",
+    "alias": [],
+    "email": "example1@example.com",
+    "phone": "",
+    "address": "",
+    "company": "",
+    "position": "",
+    "relationship": "朋友",
+    "notes": "",
+    "info_db": {},
+    "created_at": "2026-02-14 09:31:38",
+    "updated_at": "2026-02-14 09:31:38"
+  }
+}

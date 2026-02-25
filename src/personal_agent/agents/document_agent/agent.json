@@ -1,0 +1,28 @@
+{
+  "name": "document_agent",
+  "display_name": "文档处理",
+  "icon": "📄",
+  "description": "文档智能体 - 支持PDF、Word、Excel文档的浏览、解析、生成和格式转换",
+  "version": "1.0.0",
+  "priority": 5,
+  "capabilities": ["pdf_read", "pdf_extract_text", "pdf_to_word", "pdf_to_image", "word_to_pdf", "doc_generate", "excel_generate"],
+  "actions": {
+    "pdf_read": {
+      "description": "读取PDF文件内容",
+      "params": ["file_path"]
+    },
+    "pdf_to_word": {
+      "description": "将PDF转换为Word文档",
+      "params": ["file_path"]
+    },
+    "doc_generate": {
+      "description": "生成Word文档",
+      "params": ["content", "title"]
+    },
+    "excel_generate": {
+      "description": "生成Excel表格",
+      "params": ["data", "title"]
+    }
+  },
+  "help": "## 📄 文档智能体\n\n### 功能说明\n文档智能体可以处理PDF、Word、Excel文档，支持读取、生成、转换等操作。\n\n### 支持的操作\n- **PDF操作**：读取、转换、合并、拆分PDF\n- **Word操作**：生成、编辑Word文档\n- **Excel操作**：生成、编辑Excel表格\n- **格式转换**：PDF转Word、Word转PDF等\n\n### 使用示例\n- \"读取这个PDF文件\" - 读取PDF\n- \"把PDF转成Word\" - PDF转Word\n- \"生成一个Word文档\" - 生成文档\n- \"创建一个Excel表格\" - 生成表格\n- \"合并这些PDF\" - 合并PDF\n\n### 支持的格式\n- PDF文档 (.pdf)\n- Word文档 (.docx, .doc)\n- Excel表格 (.xlsx, .xls)"
+}

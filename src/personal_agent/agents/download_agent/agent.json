@@ -1,0 +1,26 @@
+{
+  "name": "download_agent",
+  "display_name": "下载",
+  "icon": "📥",
+  "description": "下载管理智能体 - 文件下载管理",
+  "capabilities": [
+    "download_file",
+    "pause_download",
+    "resume_download",
+    "cancel_download",
+    "list_downloads"
+  ],
+  "supported_file_types": [],
+  "version": "1.0.0",
+  "author": "",
+  "hidden": false,
+  "priority": 5,
+  "keywords": [
+    "下载",
+    "下载文件",
+    "下载管理",
+    "暂停下载",
+    "继续下载"
+  ],
+  "help": "## 📥 下载智能体\n\n### 功能说明\n下载智能体可以管理文件下载任务。\n\n### 支持的操作\n- **下载文件**：从URL下载文件\n- **暂停下载**：暂停正在进行的下载\n- **继续下载**：恢复暂停的下载\n- **取消下载**：取消下载任务\n- **下载列表**：查看所有下载任务\n\n### 使用示例\n- \"下载 https://example.com/file.zip\" - 下载文件\n- \"暂停下载\" - 暂停当前下载\n- \"继续下载\" - 恢复下载\n- \"取消下载\" - 取消下载\n- \"下载列表\" - 查看下载任务\n\n### 支持协议\nHTTP、HTTPS、FTP"
+}

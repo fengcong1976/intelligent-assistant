@@ -1,0 +1,30 @@
+{
+  "name": "file_agent",
+  "display_name": "文件",
+  "icon": "📁",
+  "description": "文件管理智能体 - 文件操作、搜索、整理",
+  "capabilities": [
+    "file_search",
+    "file_copy",
+    "file_move",
+    "file_delete",
+    "file_rename",
+    "folder_create",
+    "folder_list"
+  ],
+  "supported_file_types": [],
+  "version": "1.0.0",
+  "author": "",
+  "hidden": false,
+  "priority": 5,
+  "keywords": [
+    "文件",
+    "文件夹",
+    "目录",
+    "搜索文件",
+    "复制文件",
+    "移动文件",
+    "删除文件"
+  ],
+  "help": "## 📁 文件智能体\n\n### 功能说明\n文件智能体可以帮您管理电脑上的文件和文件夹。\n\n### 支持的操作\n- **文件搜索**：按名称搜索文件\n- **文件复制**：复制文件到指定位置\n- **文件移动**：移动文件到指定位置\n- **文件删除**：删除文件（移入回收站）\n- **文件重命名**：重命名文件\n- **创建文件夹**：创建新文件夹\n- **列出文件**：查看文件夹内容\n\n### 使用示例\n- \"搜索 test.txt\" - 搜索文件\n- \"复制 D:\\\\test.txt 到 E:\\\\backup\" - 复制文件\n- \"移动文件到桌面\" - 移动文件\n- \"删除这个文件\" - 删除文件\n- \"重命名为 new_name.txt\" - 重命名文件\n- \"创建文件夹 新建文件夹\" - 创建文件夹\n- \"打开 D:\\\\Documents\" - 打开文件夹"
+}

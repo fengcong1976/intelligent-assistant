@@ -1,0 +1,36 @@
+{
+  "name": "developer_agent",
+  "display_name": "开发",
+  "icon": "💻",
+  "description": "开发智能体 - 代码生成、智能体开发",
+  "capabilities": [
+    "generate_code",
+    "create_agent",
+    "debug_code",
+    "explain_code",
+    "refactor_code"
+  ],
+  "supported_file_types": [
+    ".py",
+    ".js",
+    ".ts",
+    ".java",
+    ".cpp",
+    ".c",
+    ".go",
+    ".rs"
+  ],
+  "version": "1.0.0",
+  "author": "",
+  "hidden": false,
+  "priority": 5,
+  "keywords": [
+    "开发",
+    "代码",
+    "编程",
+    "创建智能体",
+    "写代码",
+    "调试"
+  ],
+  "help": "## 💻 开发智能体\n\n### 功能说明\n开发智能体可以辅助编程开发，支持代码生成、调试和智能体开发。\n\n### 支持的操作\n- **代码生成**：根据描述生成代码\n- **创建智能体**：创建新的智能体\n- **代码调试**：帮助调试代码问题\n- **代码解释**：解释代码的功能\n- **代码重构**：优化和重构代码\n\n### 使用示例\n- \"写一个Python爬虫\" - 生成代码\n- \"创建一个新智能体\" - 创建智能体\n- \"帮我调试这段代码\" - 调试代码\n- \"解释这个函数的作用\" - 解释代码\n- \"重构这段代码\" - 代码重构\n\n### 支持的语言\nPython, JavaScript, TypeScript, Java, C++, C, Go, Rust"
+}

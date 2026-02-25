@@ -1,0 +1,28 @@
+{
+  "name": "crawler_agent",
+  "display_name": "爬虫",
+  "icon": "🕷️",
+  "description": "网页爬虫智能体 - 抓取网页数据、下载文件",
+  "capabilities": [
+    "web_search",
+    "web_crawl",
+    "data_extraction",
+    "file_download",
+    "batch_scrape"
+  ],
+  "supported_file_types": [],
+  "version": "1.0.0",
+  "author": "",
+  "hidden": false,
+  "priority": 4,
+  "keywords": [
+    "爬虫",
+    "抓取",
+    "网页",
+    "数据",
+    "下载",
+    "搜索",
+    "批量"
+  ],
+  "help": "## 🕷️ 爬虫智能体\n\n### 功能说明\n爬虫智能体可以抓取网页数据、搜索网络信息、下载文件。\n\n### 支持的操作\n- **网页搜索**：搜索网络信息\n- **网页抓取**：抓取网页内容\n- **链接提取**：提取网页中的链接（MP4、M3U8、图片等）\n- **批量爬取**：批量抓取多个页面\n- **文件下载**：下载网络文件\n\n### 使用示例\n- \"搜索 Python 教程\" - 搜索网络信息\n- \"抓取 https://example.com 的内容\" - 抓取网页\n- \"提取 https://video.com 的 mp4 链接\" - 提取视频链接\n- \"从 https://site.com/1 到 https://site.com/10 批量抓取\" - 批量爬取\n- \"下载 https://example.com/file.zip\" - 下载文件\n\n### 注意事项\n- 请遵守网站的 robots.txt 规则\n- 不要频繁请求同一网站\n- 尊重版权，仅用于学习研究"
+}

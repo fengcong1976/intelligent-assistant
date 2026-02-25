@@ -1,0 +1,37 @@
+{
+  "name": "video_agent",
+  "display_name": "视频",
+  "icon": "🎬",
+  "description": "视频播放智能体 - 播放本地视频和在线视频",
+  "capabilities": [
+    "play_video",
+    "pause_video",
+    "stop_video",
+    "video_control",
+    "video_library"
+  ],
+  "supported_file_types": [
+    ".mp4",
+    ".avi",
+    ".mkv",
+    ".mov",
+    ".wmv",
+    ".flv",
+    ".webm",
+    ".m4v",
+    ".m3u8"
+  ],
+  "version": "1.0.0",
+  "author": "",
+  "hidden": false,
+  "priority": 3,
+  "keywords": [
+    "视频",
+    "播放视频",
+    "看电影",
+    "电影",
+    "暂停视频",
+    "停止视频"
+  ],
+  "help": "## 🎬 视频智能体\n\n### 功能说明\n视频智能体可以播放本地视频文件和在线视频流，支持多种视频格式。\n\n### 支持的操作\n- **播放控制**：播放、暂停、停止、继续播放\n- **视频切换**：下一个视频、上一个视频\n- **进度控制**：快进、快退、跳转到指定位置\n- **视频库**：浏览视频库、搜索视频\n\n### 使用示例\n- \"播放视频\" - 打开视频库选择播放\n- \"播放复仇者联盟\" - 搜索并播放指定视频\n- \"暂停视频\" - 暂停当前播放\n- \"停止视频\" - 停止播放\n- \"打开 D:\\\\movies\\\\test.mp4\" - 播放指定路径的视频\n\n### 支持的视频格式\nMP4, AVI, MKV, MOV, WMV, FLV, WebM, M4V, M3U8（直播流）"
+}

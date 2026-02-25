@@ -1,0 +1,30 @@
+{
+  "name": "homeassistant_agent",
+  "display_name": "智能家居",
+  "icon": "🏠",
+  "description": "Home Assistant 智能家居控制智能体 - 支持设备控制、场景执行、状态查询",
+  "capabilities": [
+    "control_lights",
+    "control_switches",
+    "control_climate",
+    "execute_scenes",
+    "query_states",
+    "open_dashboard"
+  ],
+  "version": "1.0.0",
+  "author": "",
+  "hidden": false,
+  "priority": 4,
+  "keywords": [
+    "智能家居",
+    "Home Assistant",
+    "开灯",
+    "关灯",
+    "开空调",
+    "关空调",
+    "场景",
+    "设备控制",
+    "打开智能家居"
+  ],
+  "help": "## 🏠 智能家居智能体\n\n### 功能说明\n智能家居智能体可以控制 Home Assistant 中的设备，支持灯光、开关、空调等设备的控制。\n\n### 支持的操作\n- **灯光控制**：开灯、关灯、调节亮度、调节颜色\n- **开关控制**：打开开关、关闭开关\n- **空调控制**：开空调、关空调、调节温度、调节模式\n- **场景执行**：执行预设场景\n- **状态查询**：查询设备状态\n- **打开控制面板**：打开智能家居控制窗口\n\n### 使用示例\n- \"打开客厅灯\" - 打开客厅的灯\n- \"关闭卧室灯\" - 关闭卧室的灯\n- \"把客厅灯调亮一点\" - 调亮客厅灯\n- \"打开空调\" - 打开空调\n- \"空调调到26度\" - 设置空调温度\n- \"执行回家场景\" - 执行回家场景\n- \"打开智能家居\" - 打开智能家居控制窗口\n\n### 配置要求\n需要在设置中配置 Home Assistant 的 URL 和长期访问令牌（Long-Lived Access Token）"
+}

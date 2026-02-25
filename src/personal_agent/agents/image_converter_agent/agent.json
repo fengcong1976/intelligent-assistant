@@ -1,0 +1,35 @@
+{
+  "name": "image_converter_agent",
+  "display_name": "图片转换",
+  "icon": "🖼️",
+  "description": "图片格式转换智能体 - 支持PNG、JPG、WEBP等格式转换",
+  "capabilities": [
+    "convert_format",
+    "resize_image",
+    "compress_image",
+    "batch_convert"
+  ],
+  "supported_file_types": [
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".bmp",
+    ".gif",
+    ".tiff",
+    ".ico"
+  ],
+  "version": "1.0.0",
+  "author": "",
+  "hidden": false,
+  "priority": 5,
+  "keywords": [
+    "图片转换",
+    "格式转换",
+    "png转jpg",
+    "转换图片",
+    "压缩图片",
+    "调整大小"
+  ],
+  "help": "## 🖼️ 图片转换智能体\n\n### 功能说明\n图片转换智能体可以转换图片格式、调整大小、压缩图片。\n\n### 支持的操作\n- **格式转换**：转换图片格式\n- **调整大小**：调整图片尺寸\n- **压缩图片**：压缩图片文件大小\n- **批量转换**：批量处理多个图片\n\n### 使用示例\n- \"把这个图片转成PNG\" - 格式转换\n- \"PNG转JPG\" - 格式转换\n- \"调整图片大小为800x600\" - 调整尺寸\n- \"压缩这个图片\" - 压缩图片\n- \"批量转换这些图片\" - 批量处理\n\n### 支持的格式\nPNG, JPG/JPEG, WebP, BMP, GIF, TIFF, ICO"
+}

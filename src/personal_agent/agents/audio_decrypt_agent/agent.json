@@ -1,0 +1,33 @@
+{
+  "name": "audio_decrypt_agent",
+  "display_name": "音频解密",
+  "icon": "🔓",
+  "description": "音频解密智能体 - 解密NCM等加密音频格式转换为MP3",
+  "capabilities": [
+    "decrypt_ncm",
+    "decrypt_qmc",
+    "decrypt_kwm",
+    "batch_decrypt"
+  ],
+  "supported_file_types": [
+    ".ncm",
+    ".qmc",
+    ".qmc0",
+    ".qmc3",
+    ".kwm"
+  ],
+  "version": "1.0.0",
+  "author": "",
+  "hidden": false,
+  "priority": 5,
+  "keywords": [
+    "解密",
+    "ncm",
+    "音频",
+    "转换",
+    "mp3",
+    "网易云",
+    "QQ音乐"
+  ],
+  "help": "## 🔓 音频解密智能体\n\n### 功能说明\n音频解密智能体可以将加密的音频文件转换为普通格式（MP3/FLAC），支持网易云音乐、QQ音乐等平台的加密格式。\n\n### 支持的加密格式\n- **NCM**：网易云音乐加密格式\n- **QMC/QMC0/QMC3**：QQ音乐加密格式\n- **KWM**：酷我音乐加密格式\n\n### 使用示例\n- \"把这个ncm文件转换成mp3\" - 解密单个文件\n- \"把附件目录下的ncm文件转换成MP3\" - 批量解密\n- 拖入文件夹后说 \"转换这些文件\" - 解密拖入的文件\n\n### 输出格式\n- 自动识别原始音频格式（MP3/FLAC）\n- 解密后保存在原文件所在目录\n- 保留原始音频质量"
+}

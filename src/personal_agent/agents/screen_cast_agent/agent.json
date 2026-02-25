@@ -1,0 +1,26 @@
+{
+  "name": "screen_cast_agent",
+  "display_name": "投屏",
+  "icon": "📺",
+  "description": "投屏智能体 - 屏幕投射到其他设备",
+  "capabilities": [
+    "start_cast",
+    "stop_cast",
+    "list_devices",
+    "configure_cast"
+  ],
+  "supported_file_types": [],
+  "version": "1.0.0",
+  "author": "",
+  "hidden": false,
+  "priority": 5,
+  "keywords": [
+    "投屏",
+    "屏幕",
+    "投射",
+    "镜像",
+    "同屏",
+    "无线投屏"
+  ],
+  "help": "## 📺 投屏智能体\n\n### 功能说明\n投屏智能体可以将电脑屏幕投射到其他设备（如电视、投影仪）。\n\n### 支持的操作\n- **开始投屏**：将屏幕投射到指定设备\n- **停止投屏**：结束投屏\n- **设备列表**：查看可用的投屏设备\n- **投屏设置**：配置投屏参数\n\n### 使用示例\n- \"开始投屏\" - 开始投屏\n- \"投屏到电视\" - 投屏到指定设备\n- \"停止投屏\" - 停止投屏\n- \"查看可用设备\" - 列出设备\n\n### 支持的协议\n- Miracast\n- DLNA\n- AirPlay"
+}
