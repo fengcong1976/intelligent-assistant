@@ -97,10 +97,11 @@ class ImageConverterAgent(BaseAgent):
             return self.cannot_handle(f"转换失败: {e}")
     
     async def _resize_image(self, params: Dict) -> str:
-        source_path = params.get("source_path")
+        source_path = params.get("source_path") or params.get("image_path")
         width = params.get("width")
         height = params.get("height")
         scale = params.get("scale")
+        size = params.get("size")
         
         if not source_path or not os.path.exists(source_path):
             return self.cannot_handle("源文件不存在")
@@ -112,6 +113,17 @@ class ImageConverterAgent(BaseAgent):
             if scale is not None:
                 new_w = int(orig_w * scale)
                 new_h = int(orig_h * scale)
+            elif size:
+                if isinstance(size, str) and "x" in size.lower():
+                    parts = size.lower().split("x")
+                    if len(parts) == 2:
+                        try:
+                            new_w = int(parts[0].strip())
+                            new_h = int(parts[1].strip())
+                        except ValueError:
+                            return self.cannot_handle("无效的尺寸格式，请使用如 '128x128' 的格式")
+                else:
+                    return self.cannot_handle("无效的尺寸格式，请使用如 '128x128' 的格式")
             else:
                 new_w = width if width is not None else orig_w
                 new_h = height if height is not None else orig_h
