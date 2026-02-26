@@ -1992,6 +1992,24 @@ class MasterAgent(BaseAgent):
             )
             tasks.append(task)
 
+        elif intent_type == "open_app":
+            task = Task(
+                type="open",
+                content=request,
+                params=params,
+                priority=5
+            )
+            tasks.append(task)
+
+        elif intent_type == "install_app":
+            task = Task(
+                type="install",
+                content=request,
+                params=params,
+                priority=5
+            )
+            tasks.append(task)
+
         elif intent_type == "app_management":
             action = params.get("action", "list_apps")
             task = Task(
@@ -2403,10 +2421,18 @@ class MasterAgent(BaseAgent):
                                     replacement = str(prev_output)
                                     
                                     if key == "attachment":
-                                        path_match = re.search(r'([A-Za-z]:\\[^\n\r]+\.(xlsx|xls|docx|doc|pdf|txt|csv))', replacement)
-                                        if path_match:
-                                            replacement = path_match.group(1)
-                                            logger.info(f"📎 从结果中提取文件路径: {replacement}")
+                                        if isinstance(previous_result, dict):
+                                            if "file_path" in previous_result:
+                                                replacement = previous_result["file_path"]
+                                                logger.info(f"📎 从结果中提取 file_path: {replacement}")
+                                            elif "first_file_path" in previous_result:
+                                                replacement = previous_result["first_file_path"]
+                                                logger.info(f"📎 从结果中提取 first_file_path: {replacement}")
+                                            else:
+                                                path_match = re.search(r'([A-Za-z]:\\[^\n\r]+\.(xlsx|xls|docx|doc|pdf|txt|csv|png|jpg|jpeg|gif|bmp|webp))', replacement)
+                                                if path_match:
+                                                    replacement = path_match.group(1)
+                                                    logger.info(f"📎 从结果中提取文件路径: {replacement}")
                                     
                                     task.params[key] = value.replace(placeholder, replacement)
                                     logger.info(f"🔄 工作流: 使用前一步骤结果作为参数 {key} = {str(task.params[key])[:100]}...")

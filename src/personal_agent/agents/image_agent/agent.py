@@ -297,19 +297,28 @@ class ImageAgent(BaseAgent):
             logger.error(f"保存图片失败: {e}")
             return None
 
-    def _format_success_response(self, prompt: str, images: list) -> str:
+    def _format_success_response(self, prompt: str, images: list) -> Dict[str, Any]:
         """格式化成功响应"""
         result = f"✅ 图片生成成功！\n\n"
         result += f"📝 描述：{prompt}\n\n"
         result += f"🖼️ 生成了 {len(images)} 张图片：\n"
         
+        file_paths = []
         for i, img in enumerate(images, 1):
             local_path = img.get("local_path", "")
             if local_path:
                 result += f"\n{i}. 本地路径：{local_path}"
+                file_paths.append(local_path)
         
         result += "\n\n💡 您可以打开图片查看效果"
-        return result
+        
+        return {
+            "message": result,
+            "file_paths": file_paths,
+            "first_file_path": file_paths[0] if file_paths else None,
+            "count": len(images),
+            "prompt": prompt
+        }
 
     def _get_help_info(self) -> str:
         """获取帮助信息"""

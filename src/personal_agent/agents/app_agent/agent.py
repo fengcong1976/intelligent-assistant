@@ -48,7 +48,8 @@ class AppAgent(BaseAgent):
                 "打开QQ音乐", "打开网易云音乐", "打开酷狗音乐", "打开暴风影音",
                 "打开WPS", "打开Office", "打开Photoshop", "打开记事本++",
                 "打开edge浏览器", "打开chrome浏览器", "打开qq浏览器", "打开firefox浏览器",
-                "打开360浏览器", "打开搜狗浏览器", "打开猎豹浏览器", "打开傲游浏览器"
+                "打开360浏览器", "打开搜狗浏览器", "打开猎豹浏览器", "打开傲游浏览器",
+                "打开抖音", "打开Douyin", "打开TikTok"
             ],
             alias_params={
                 "打开QQ": {"app_name": "QQ"},
@@ -72,7 +73,10 @@ class AppAgent(BaseAgent):
                 "打开360浏览器": {"app_name": "360浏览器"},
                 "打开搜狗浏览器": {"app_name": "搜狗浏览器"},
                 "打开猎豹浏览器": {"app_name": "猎豹浏览器"},
-                "打开傲游浏览器": {"app_name": "傲游浏览器"}
+                "打开傲游浏览器": {"app_name": "傲游浏览器"},
+                "打开抖音": {"app_name": "抖音"},
+                "打开Douyin": {"app_name": "抖音"},
+                "打开TikTok": {"app_name": "抖音"}
             },
             parameters={
                 "type": "object",
@@ -94,7 +98,8 @@ class AppAgent(BaseAgent):
                 "安装", "安装应用", "安装软件", "下载应用", "安装程序",
                 "安装QQ", "安装微信", "安装Chrome", "安装Edge", "安装VS Code",
                 "安装网易云音乐", "安装QQ音乐", "安装酷狗音乐", "安装暴风影音",
-                "安装WPS", "安装Office", "安装Photoshop", "安装记事本++"
+                "安装WPS", "安装Office", "安装Photoshop", "安装记事本++",
+                "安装抖音", "安装Douyin", "安装TikTok"
             ],
             alias_params={
                 "安装QQ": {"app_name": "QQ"},
@@ -109,7 +114,10 @@ class AppAgent(BaseAgent):
                 "安装WPS": {"app_name": "WPS"},
                 "安装Office": {"app_name": "Office"},
                 "安装Photoshop": {"app_name": "Photoshop"},
-                "安装记事本++": {"app_name": "记事本++"}
+                "安装记事本++": {"app_name": "记事本++"},
+                "安装抖音": {"app_name": "抖音"},
+                "安装Douyin": {"app_name": "抖音"},
+                "安装TikTok": {"app_name": "抖音"}
             },
             parameters={
                 "type": "object",
@@ -323,12 +331,8 @@ class AppAgent(BaseAgent):
         simple_name = re.sub(r'[^\w\u4e00-\u9fff]', '', clean_name).lower()
         if simple_name and simple_name != clean_name.lower():
             self._installed_apps[simple_name] = path
-
-    async def _find_app_path(self, app_name: str) -> Optional[str]:
-        """查找应用程序路径"""
-        import re
         
-        # 常见应用名称映射（硬编码，提高匹配成功率）
+        # 为常见应用添加英文别名
         COMMON_APP_ALIASES = {
             "edge": ["Microsoft Edge", "msedge", "edge"],
             "chrome": ["Google Chrome", "chrome", "googlechrome"],
@@ -339,68 +343,96 @@ class AppAgent(BaseAgent):
             "网易云音乐": ["NeteaseCloudMusic", "cloudmusic"],
             "qq音乐": ["QQMusic", "qqmusic"],
             "酷狗音乐": ["KuGou", "kugou"],
+            "抖音": ["Douyin", "douyin"],
         }
         
-        # 标准化应用名称：移除多余空格
+        # 反向映射：从中文名找到英文名
+        for canonical_name, aliases in COMMON_APP_ALIASES.items():
+            if clean_name in aliases:
+                # 添加所有英文名作为别名
+                for alias in aliases:
+                    alias_lower = alias.lower()
+                    if alias_lower != clean_name.lower():
+                        self._installed_apps[alias_lower] = path
+
+    async def _find_app_path(self, app_name: str) -> Optional[str]:
+        """查找应用程序路径"""
+        import re
+        
+        COMMON_APP_ALIASES = {
+            "edge": ["Microsoft Edge", "msedge", "edge"],
+            "chrome": ["Google Chrome", "chrome", "googlechrome"],
+            "firefox": ["Mozilla Firefox", "firefox"],
+            "qq": ["QQ", "qq"],
+            "微信": ["WeChat", "wechat"],
+            "vs code": ["Visual Studio Code", "code", "vscode"],
+            "网易云音乐": ["NeteaseCloudMusic", "cloudmusic"],
+            "qq音乐": ["QQMusic", "qqmusic"],
+            "酷狗音乐": ["KuGou", "kugou"],
+            "抖音": ["Douyin", "douyin"],
+        }
+        
         app_name_normalized = re.sub(r'\s+', '', app_name).strip()
         app_name_lower = app_name_normalized.lower()
+        app_name_simple = re.sub(r'[^\w\u4e00-\u9fff]', '', app_name).lower()
         
-        # 处理"打开浏览器"请求
+        logger.info(f"📱 查找应用: '{app_name}' -> normalized='{app_name_normalized}', simple='{app_name_simple}'")
+        logger.debug(f"📱 已安装应用数量: {len(self._installed_apps)}")
+        
         if app_name_lower in ["浏览器", "browser"]:
-            # 优先尝试常见浏览器
             browser_priority = ["chrome", "msedge", "firefox"]
             for browser in browser_priority:
                 browser_path = shutil.which(browser)
                 if browser_path:
                     logger.info(f"📱 找到浏览器: {browser}")
                     return browser_path
-            # 尝试从已安装应用中查找浏览器
             for name, path in self._installed_apps.items():
                 name_lower = name.lower()
                 if any(browser in name_lower for browser in ["chrome", "edge", "firefox", "browser"]):
                     logger.info(f"📱 从已安装应用找到浏览器: {name}")
                     return path
-            # 使用系统默认浏览器
             logger.info(f"📱 使用系统默认浏览器")
             return "default_browser"
         
-        # 检查常见应用别名映射
         for canonical_name, aliases in COMMON_APP_ALIASES.items():
-            if app_name_lower in [alias.lower() for alias in aliases]:
-                # 尝试用所有别名查找
+            if app_name_lower in [alias.lower() for alias in aliases] or app_name_simple in [re.sub(r'[^\w\u4e00-\u9fff]', '', alias).lower() for alias in aliases]:
                 for alias in aliases:
                     alias_lower = alias.lower()
                     if alias_lower in self._installed_apps:
                         logger.info(f"📱 通过别名映射找到应用: {app_name} -> {alias}")
                         return self._installed_apps[alias_lower]
         
-        # 尝试直接匹配（标准化后的名称）
         if app_name_lower in self._installed_apps:
+            logger.info(f"📱 直接匹配找到应用: {app_name}")
             return self._installed_apps[app_name_lower]
         
-        # 尝试原始名称匹配
+        if app_name_simple in self._installed_apps:
+            logger.info(f"📱 简化名称匹配找到应用: {app_name_simple}")
+            return self._installed_apps[app_name_simple]
+        
         app_name_original_lower = app_name.lower().strip()
         if app_name_original_lower in self._installed_apps:
+            logger.info(f"📱 原始名称匹配找到应用: {app_name}")
             return self._installed_apps[app_name_original_lower]
         
         if shutil.which(app_name):
+            logger.info(f"📱 通过 PATH 找到应用: {app_name}")
             return app_name
         
         if self.system == "Windows":
             if shutil.which(app_name + ".exe"):
+                logger.info(f"📱 通过 PATH 找到应用: {app_name}.exe")
                 return app_name + ".exe"
         
-        # 尝试模糊匹配
         fuzzy_match = self._fuzzy_match_app(app_name_lower)
         if fuzzy_match:
+            logger.info(f"📱 模糊匹配找到应用: {app_name}")
             return fuzzy_match
         
-        # 找不到应用，重新扫描系统
         logger.info(f"📱 未找到应用 {app_name}，重新扫描系统...")
         self._scanned = False
         await self._scan_installed_apps()
         
-        # 再次尝试查找（包括别名映射）
         for canonical_name, aliases in COMMON_APP_ALIASES.items():
             if app_name_lower in [alias.lower() for alias in aliases]:
                 for alias in aliases:
@@ -412,7 +444,13 @@ class AppAgent(BaseAgent):
         if app_name_lower in self._installed_apps:
             return self._installed_apps[app_name_lower]
         
-        return self._fuzzy_match_app(app_name_lower)
+        fuzzy_match = self._fuzzy_match_app(app_name_lower)
+        if fuzzy_match:
+            logger.info(f"📱 重新扫描后模糊匹配找到应用: {app_name}")
+            return fuzzy_match
+        
+        logger.warning(f"📱 未找到应用: {app_name}")
+        return None
 
     def _fuzzy_match_app(self, app_name: str) -> Optional[str]:
         """模糊匹配应用名称"""
@@ -420,9 +458,13 @@ class AppAgent(BaseAgent):
         
         search_term = re.sub(r'[^\w\u4e00-\u9fff]', '', app_name).lower()
         
+        if len(search_term) < 2:
+            return None
+        
         exact_matches = []
         prefix_matches = []
         suffix_matches = []
+        contains_matches = []
         
         for cached_name, path in self._installed_apps.items():
             cached_simple = re.sub(r'[^\w\u4e00-\u9fff]', '', cached_name).lower()
@@ -438,6 +480,14 @@ class AppAgent(BaseAgent):
             if search_term.startswith(cached_simple) and len(cached_simple) >= 3:
                 suffix_matches.append((cached_name, path, len(cached_simple)))
                 continue
+            
+            if search_term in cached_simple:
+                contains_matches.append((cached_name, path, len(cached_simple)))
+                continue
+            
+            if cached_simple in search_term and len(cached_simple) >= 3:
+                contains_matches.append((cached_name, path, len(cached_simple)))
+                continue
         
         if exact_matches:
             return exact_matches[0][1]
@@ -449,6 +499,10 @@ class AppAgent(BaseAgent):
         if suffix_matches:
             suffix_matches.sort(key=lambda x: x[2], reverse=True)
             return suffix_matches[0][1]
+        
+        if contains_matches:
+            contains_matches.sort(key=lambda x: x[2])
+            return contains_matches[0][1]
         
         return None
 

@@ -137,11 +137,32 @@ class ToolBasedIntentParser:
 规则：
 1. 能直接回答的问题（知识、翻译、闲聊等）直接回答，不调用工具
 2. 需要实时数据、特定操作、外部系统、文件操作时调用工具
-3. 多操作时调用多个工具
+3. 多操作时调用多个工具，用逗号分隔
 4. 工具名称固定，用参数控制行为（如play_music(action="next")）
+5. 如果用户请求包含"发送"、"发到"、"发给"、"邮箱"、"邮件"等关键词，必须调用send_email工具
+6. 如果用户请求包含"保存"、"生成"、"存成"、"存为"、"文档"、"pdf"、"word"、"excel"等关键词，必须调用save_document工具
+7. 当用户同时要求生成/保存文档和发送邮件时，必须同时调用save_document和send_email两个工具
+8. 当用户同时要求生成图片和发送邮件时，必须同时调用generate_image和send_email两个工具
+9. 当用户输入包含多个不同的操作关键词时，必须调用对应的多个工具，不要只选择其中一个
+10. 如果操作分析中显示多个操作（如"生成/保存文档、发送邮件"），必须调用所有对应的工具
+
+特别注意：
+- 用户说"写...并保存...发到..."时，必须同时调用save_document和send_email
+- 用户说"生成...并发给..."时，必须同时调用generate_image和send_email
+- 不要只选择其中一个工具，必须同时调用所有相关工具
+
 返回格式：
 - 需要工具：工具调用，如 get_weather(city="北京")
+- 多个工具：generate_image(prompt="西安钟楼"), send_email(to="傅总", attachment="{generate_image.first_file_path}")
+- 多个工具：save_document(content="西安钟楼介绍", filename="西安钟楼.pdf"), send_email(to="小聪聪", attachment="{save_document.file_path}")
 - 不需要工具：直接回答，如 "端午节是中国传统节日..."
+
+重要说明：
+- 多工具调用时，用逗号分隔多个工具调用
+- 如果需要将前一个工具的输出作为后一个工具的参数，使用{工具名.参数名}的格式
+- 例如：{save_document.file_path}表示使用save_document工具返回的file_path参数值
+- 例如：{generate_image.first_file_path}表示使用generate_image工具返回的first_file_path参数值
+
 示例："""
         
         # 从工具注册表生成示例（只为匹配的工具生成）
@@ -185,6 +206,19 @@ class ToolBasedIntentParser:
             example = self._generate_tool_example(tool)
             if example:
                 examples.append(example)
+        
+        # 如果同时有save_document和send_email，添加组合示例
+        tool_names = [tool.name for tool in tools]
+        if "save_document" in tool_names and "send_email" in tool_names:
+            examples.append("\n多工具组合示例：")
+            examples.append("用户: 写一篇关于西安钟楼的介绍并保存成pdf格式发到小聪聪邮箱 -> save_document(content=\"西安钟楼介绍\", filename=\"西安钟楼.pdf\"), send_email(to=\"小聪聪\", attachment=\"{save_document.file_path}\")")
+            examples.append("用户: 写一份报告保存成word格式发给张三 -> save_document(content=\"报告内容\", filename=\"报告.docx\"), send_email(to=\"张三\", attachment=\"{save_document.file_path}\")")
+            examples.append("用户: 生成一份文档并保存成pdf发给我 -> save_document(content=\"文档内容\", filename=\"文档.pdf\"), send_email(to=\"我\", attachment=\"{save_document.file_path}\")")
+        elif "generate_image" in tool_names and "send_email" in tool_names:
+            examples.append("\n多工具组合示例：")
+            examples.append("用户: 生成一张荷花照片并发给傅总 -> generate_image(prompt=\"荷花照片\"), send_email(to=\"傅总\", attachment=\"{generate_image.first_file_path}\")")
+            examples.append("用户: 生成一张西安钟楼的图片并发到小聪聪邮箱 -> generate_image(prompt=\"西安钟楼\"), send_email(to=\"小聪聪\", attachment=\"{generate_image.first_file_path}\")")
+            examples.append("用户: 生成一张风景照片发给我 -> generate_image(prompt=\"风景照片\"), send_email(to=\"我\", attachment=\"{generate_image.first_file_path}\")")
         
         return "\n".join(examples)
     
@@ -312,7 +346,7 @@ class ToolBasedIntentParser:
         elif tool_name == "play_music":
             user_inputs.extend(["播放音乐", "下一首", "播放周杰伦的歌", "播放稻香"])
         elif tool_name == "send_email":
-            user_inputs.append("发送邮件")
+            user_inputs.extend(["发送邮件", "发到小聪聪邮箱", "发给张三", "发邮件给我", "发送到邮箱"])
         elif tool_name == "generate_image":
             user_inputs.extend(["生成一张荷花照片", "生成一张1920*1080的荷花照片"])
         elif tool_name == "query_stock":
@@ -364,7 +398,7 @@ class ToolBasedIntentParser:
         elif tool_name == "list_contacts":
             user_inputs.append("列出联系人")
         elif tool_name == "save_document":
-            user_inputs.append("保存文档")
+            user_inputs.extend(["保存文档", "生成pdf文档", "保存成pdf", "生成word文档", "保存为excel"])
         else:
             user_inputs.append(description[:20])
         
@@ -420,6 +454,16 @@ class ToolBasedIntentParser:
             files = context.get("files", [])
             if files:
                 context_info = f"\n\n【附件信息】用户已提供以下附件文件：\n" + "\n".join(f"- {f}" for f in files)
+        
+        # 分析用户输入中的操作关键词
+        operation_analysis = self._analyze_operations(user_input)
+        if operation_analysis:
+            context_info += f"\n\n【操作分析】检测到以下操作：{operation_analysis}"
+            logger.info(f"🔍 操作分析结果: {operation_analysis}")
+        
+        # 如果检测到多个操作，添加明确指示
+        if operation_analysis and "、" in operation_analysis:
+            context_info += f"\n\n【重要提示】检测到多个操作，请调用所有相关工具，不要只选择其中一个！"
         
         try:
             matched_tools = self._pre_filter_tools(user_input)
@@ -788,6 +832,7 @@ class ToolBasedIntentParser:
             "play_video": ["视频", "电影", "播放视频", "看电影", "视频播放器", "影片"],
             "send_email": ["邮件", "邮箱", "发送邮件", "写信", "邮件发送"],
             "generate_image": ["图片", "照片", "生成", "画", "绘画", "图像"],
+            "save_document": ["保存", "生成文档", "生成pdf", "保存成pdf", "保存为pdf", "生成word", "生成doc", "保存成doc", "保存为doc", "生成excel", "保存成excel", "保存为excel", "存成", "存为", "文档", "pdf", "word", "doc", "excel", "xlsx"],
             "web_search": ["搜索", "百度", "谷歌", "查找", "查询", "搜"],
             "get_news": ["新闻", "资讯", "消息", "新闻资讯", "时事"],
             "open_app": ["打开", "启动", "运行", "应用", "程序", "软件"],
@@ -827,6 +872,30 @@ class ToolBasedIntentParser:
         
         logger.debug(f"   预筛选结果: {[t.name for t in matched_tools]}")
         return matched_tools if matched_tools else None
+    
+    def _analyze_operations(self, user_input: str) -> str:
+        """分析用户输入中的操作关键词"""
+        user_input_lower = user_input.lower()
+        
+        operations = []
+        
+        # 检测各种操作关键词
+        if any(keyword in user_input_lower for keyword in ["保存", "生成", "存成", "存为", "文档", "pdf", "word", "doc", "excel", "xlsx"]):
+            operations.append("生成/保存文档")
+        
+        if any(keyword in user_input_lower for keyword in ["发送", "发到", "发给", "邮箱", "邮件"]):
+            operations.append("发送邮件")
+        
+        if any(keyword in user_input_lower for keyword in ["图片", "照片", "画", "绘画", "图像"]):
+            operations.append("生成图片")
+        
+        if any(keyword in user_input_lower for keyword in ["音乐", "歌曲", "播放", "听歌"]):
+            operations.append("播放音乐")
+        
+        if any(keyword in user_input_lower for keyword in ["视频", "电影", "影片"]):
+            operations.append("播放视频")
+        
+        return "、".join(operations) if operations else ""
     
     def get_available_tools(self) -> List[str]:
         """获取所有可用工具名称"""

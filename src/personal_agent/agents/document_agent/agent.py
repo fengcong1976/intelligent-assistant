@@ -3,7 +3,7 @@
 支持PDF、Word、Excel文档的读取、生成、转换等功能
 """
 import re
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 from pathlib import Path
 from loguru import logger
 
@@ -635,7 +635,7 @@ class DocumentAgent(BaseAgent):
         
         return await self._generate_docx(title, content, output_path)
 
-    async def _handle_save_document(self, params: Dict) -> str:
+    async def _handle_save_document(self, params: Dict) -> Union[str, Dict[str, Any]]:
         """保存文档 - 根据文件扩展名自动选择格式"""
         content = params.get("content", "")
         filename = params.get("filename", "文档.docx")
@@ -652,15 +652,26 @@ class DocumentAgent(BaseAgent):
         
         suffix = output_path.suffix.lower()
         
+        result = None
         if suffix in [".xlsx", ".xls"]:
-            return await self._generate_excel(content, output_path)
+            result = await self._generate_excel(content, output_path)
         elif suffix == ".pdf":
-            return await self._generate_pdf_from_content(content, output_path)
+            result = await self._generate_pdf_from_content(content, output_path)
         else:
             if suffix == ".doc":
                 output_path = output_path.with_suffix(".docx")
             title = output_path.stem
-            return await self._generate_docx(title, content, output_path)
+            result = await self._generate_docx(title, content, output_path)
+        
+        if isinstance(result, str) and "✅" in result:
+            return {
+                "message": result,
+                "file_path": str(output_path),
+                "filename": output_path.name,
+                "format": suffix[1:] if suffix else "docx"
+            }
+        
+        return result
 
     async def _generate_excel(self, content: str, output_path: Path) -> str:
         """生成Excel文件"""
