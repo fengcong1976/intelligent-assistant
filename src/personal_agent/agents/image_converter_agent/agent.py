@@ -57,6 +57,9 @@ class ImageConverterAgent(BaseAgent):
             elif action == "batch_convert":
                 return await self._batch_convert(params)
         
+        elif task_type == "agent_help":
+            return self._get_help_info()
+        
         return self.cannot_handle(f"未知操作: {task_type}")
     
     async def _convert_image(self, params: Dict) -> str:

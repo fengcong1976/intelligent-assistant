@@ -443,6 +443,8 @@ class CalendarAgent(BaseAgent):
             return await self._handle_delete_event(params)
         elif task_type == "list_upcoming":
             return await self._handle_list_upcoming(params)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return f"❌ 不支持的操作: {task_type}"
 
@@ -712,3 +714,27 @@ class CalendarAgent(BaseAgent):
             lines.append(f"  • {time_display}{event.title}{location_display}")
 
         return "\n".join(lines)
+
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 日历智能体
+
+### 功能说明
+日历智能体可以管理日程安排，支持添加、查询、删除日程事件。
+
+### 支持的操作
+- **添加日程**：添加新的日程安排
+- **查询日程**：查看日程安排
+- **删除日程**：删除已有日程
+- **更新日程**：修改日程信息
+- **日程提醒**：设置日程提醒
+
+### 使用示例
+- "添加日程：明天下午3点开会" - 添加新日程
+- "查看今天的日程" - 查询日程
+- "删除明天的会议" - 删除日程
+
+### 注意事项
+- 支持自然语言输入日期时间
+- 可以设置重复日程
+- 支持日程提醒功能"""

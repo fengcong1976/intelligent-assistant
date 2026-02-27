@@ -44,6 +44,8 @@ class AudioDecryptAgent(BaseAgent):
             return await self.batch_decrypt(task)
         elif task_type == "decrypt_ncm" or action == "decrypt_ncm":
             return await self.decrypt_ncm(task)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return {"success": False, "error": f"未知操作: {task_type}"}
     
@@ -88,6 +90,8 @@ class AudioDecryptAgent(BaseAgent):
                     "output": final_path,
                     "message": f"✅ 解密成功！\n📁 输出文件: {final_path}"
                 }
+            elif task_type == "agent_help":
+                return self._get_help_info()
             else:
                 return {"success": False, "error": "解密失败"}
             
@@ -302,3 +306,22 @@ class AudioDecryptAgent(BaseAgent):
 支持格式：
 • .ncm (网易云音乐)
 """
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 音频解密智能体
+
+### 功能说明
+音频解密智能体可以解密网易云音乐等加密音频文件。
+
+### 支持的操作
+- **解密文件**：解密单个音频文件
+- **批量解密**：批量解密音频文件
+
+### 使用示例
+- "解密NCM文件" - 解密单个文件
+- "批量解密音频" - 批量解密
+
+### 注意事项
+- 支持.ncm等加密格式
+- 解密后的文件为MP3格式
+- 请确保有合法的使用权限"""

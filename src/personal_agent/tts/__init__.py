@@ -909,6 +909,7 @@ def init_tts(api_key: str = None, provider: str = "dashscope") -> TTSManager:
     if api_key is None:
         from ..config import Settings
         settings = Settings()
+        settings.reload()  # 重新加载配置以获取最新设置
         api_key = settings.llm.voice_dashscope_api_key or settings.llm.dashscope_api_key
         provider = settings.llm.voice_provider
         _tts_manager = TTSManager(api_key=api_key, provider=provider)

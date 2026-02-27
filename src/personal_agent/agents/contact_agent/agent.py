@@ -69,13 +69,13 @@ class ContactAgent(BaseAgent):
         
         self.register_capability(
             capability="contact_add",
-            description="添加或保存联系人到通讯录。当用户提供新的联系人信息（姓名、邮箱、电话、标签等）时调用此工具。例如：'老板 234566@qq.com 领导'、'保存联系人张三 13800138000'。",
+            description="添加或保存联系人到通讯录。当用户提供新的联系人信息（姓名、邮箱、电话、关系、标签等）时调用此工具。例如：'老板 234566@qq.com 领导'、'保存联系人张三 13800138000'、'添加 小乱了 1000@qq.com 朋友 到通讯录'。支持中文关系描述（如'朋友'、'同事'、'领导'等）。",
             parameters={
                 "type": "object",
                 "properties": {
                     "name": {
                         "type": "string",
-                        "description": "联系人姓名，如'老板'、'张三'"
+                        "description": "联系人姓名，如'老板'、'张三'、'小乱了'"
                     },
                     "email": {
                         "type": "string",
@@ -85,10 +85,14 @@ class ContactAgent(BaseAgent):
                         "type": "string",
                         "description": "电话号码"
                     },
+                    "relationship": {
+                        "type": "string",
+                        "description": "关系描述，如'朋友'、'同事'、'领导'、'家人'、'同学'等"
+                    },
                     "tags": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "标签列表，如['领导', '同事']"
+                        "description": "标签列表，如['领导', '同事']。如果没有提供relationship，会使用第一个标签作为关系"
                     }
                 },
                 "required": ["name"]
@@ -145,6 +149,8 @@ class ContactAgent(BaseAgent):
             return await self._handle_natural_query(params)
         elif task_type == "general":
             return await self._handle_general(params)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return self.cannot_handle(
                 reason=f"不支持的通讯录操作: {task_type}",
@@ -183,6 +189,8 @@ class ContactAgent(BaseAgent):
         """添加联系人"""
         name = params.get("name", "")
         
+        logger.info(f"📝 _handle_add 接收到的参数: {params}")
+        
         if not name:
             return self.cannot_handle(
                 reason="请提供联系人姓名",
@@ -200,6 +208,9 @@ class ContactAgent(BaseAgent):
         relationship = params.get("relationship", "")
         if tags and not relationship:
             relationship = tags[0] if len(tags) == 1 else ", ".join(tags)
+        
+        logger.info(f"📝 最终使用的 relationship: {relationship}")
+        logger.info(f"📝 最终使用的 tags: {tags}")
         
         contact = self.contact_book.add_contact(
             name=name,
@@ -578,7 +589,31 @@ class ContactAgent(BaseAgent):
             ]
         })
         return status
-    
+
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 联系人智能体
+
+### 功能说明
+联系人智能体可以管理通讯录，支持添加、删除、查询联系人信息。
+
+### 支持的操作
+- **添加联系人**：添加新的联系人
+- **删除联系人**：删除已有联系人
+- **查询联系人**：查找联系人信息
+- **更新联系人**：修改联系人信息
+- **搜索联系人**：按条件搜索联系人
+
+### 使用示例
+- "添加联系人张三，电话13800138000" - 添加新联系人
+- "查找李四" - 查询联系人信息
+- "删除王五" - 删除联系人
+- "更新赵六的邮箱" - 更新联系人信息
+
+### 注意事项
+- 联系人信息会保存在本地
+- 支持批量导入导出联系人"""
+
     async def handle_message(self, message: Message):
         """处理来自其他智能体的消息"""
         logger.info(f"📨 收到来自 {message.from_agent} 的消息: {message.message_type}")

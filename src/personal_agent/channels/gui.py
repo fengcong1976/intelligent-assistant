@@ -1297,7 +1297,7 @@ class ChatWindow:
 
     def append_message(self, role: str, content: str, metadata: dict = None):
         """Add message to chat and save to conversation"""
-        self._append_message_without_save(role, content)
+        self._append_message_without_save(role, content, metadata)
         if hasattr(self, 'conv_manager') and role != "system":
             self.conv_manager.add_message(role, content, metadata)
             
@@ -1309,7 +1309,7 @@ class ChatWindow:
             self._pending_auto_speak = None
             self._start_auto_speak_after_message_added(text_to_speak)
 
-    def _append_message_without_save(self, role: str, content: str):
+    def _append_message_without_save(self, role: str, content: str, metadata: dict = None):
         """Add message to chat without saving to conversation"""
         from PyQt6.QtWidgets import QListWidgetItem, QHBoxLayout, QVBoxLayout, QLabel
         
@@ -1323,6 +1323,14 @@ class ChatWindow:
         msg_widget._role = role
         msg_widget._content = content
         msg_widget._audio_cache = None
+        
+        # 设置 skip_auto_speak 标志，用于控制播放按钮的显示
+        skip_auto_speak = metadata and metadata.get('skip_auto_speak', False)
+        msg_widget._skip_auto_speak = skip_auto_speak
+        
+        from loguru import logger
+        logger.info(f"🔍 _append_message_without_save: role={role}, metadata={metadata}, skip_auto_speak={skip_auto_speak}")
+        
         outer_layout = self.QVBoxLayout(msg_widget)
         outer_layout.setContentsMargins(24, 8, 24, 8)
         outer_layout.setSpacing(4)
@@ -1427,9 +1435,13 @@ class ChatWindow:
             bubble.setMaximumWidth(max_width)
             bubble_layout.addWidget(bubble, 1)
             
+            skip_auto_speak_check = metadata and metadata.get('skip_auto_speak', False)
             from ..tts import get_tts_manager
+            from loguru import logger
+            logger.info(f"🔍 _append_message_without_save (play button): metadata={metadata}, skip_auto_speak_check={skip_auto_speak_check}, tts_enabled={get_tts_manager().is_enabled()}")
+            
             tts = get_tts_manager()
-            if tts.is_enabled():
+            if tts.is_enabled() and not skip_auto_speak_check:
                 play_btn = self.QPushButton("▶")
                 play_btn.setFixedSize(28, 28)
                 play_btn.setToolTip("播放语音")
@@ -1470,6 +1482,7 @@ class ChatWindow:
                 msg_id = id(msg_widget)
                 play_btn.clicked.connect(lambda checked, mid=msg_id, txt=content, btn=play_btn: self._toggle_tts(mid, txt, btn))
                 bubble_layout.addWidget(play_btn)
+                logger.info(f"🔍 _append_message_without_save: play button hidden (skip_auto_speak_check={skip_auto_speak_check})")
             
             content_layout.addWidget(bubble_row)
             
@@ -2204,7 +2217,9 @@ class ChatWindow:
         agent_name = settings.agent.name or "小助手"
         self.chat_title.setText(f"智能助理-{agent_name}")
         
-        from ..tts import get_tts_manager
+        # 重新初始化 TTSManager 以应用新的设置
+        from ..tts import init_tts, get_tts_manager
+        init_tts()  # 重新初始化 TTSManager
         tts_enabled = get_tts_manager().is_enabled()
         self._update_play_buttons_visibility(tts_enabled)
         
@@ -2220,6 +2235,11 @@ class ChatWindow:
             item = self.messages_list.item(i)
             widget = self.messages_list.itemWidget(item)
             if widget:
+                # 检查消息是否应该跳过自动语音合成
+                skip_auto_speak = getattr(widget, '_skip_auto_speak', False)
+                if skip_auto_speak:
+                    continue
+                
                 play_btns = widget.findChildren(self.QPushButton, "tts_play_btn")
                 for btn in play_btns:
                     btn.setVisible(visible)
@@ -2486,7 +2506,7 @@ class ChatWindow:
         chat_history = self._chat_history.copy()
         
         class ResponseThread(QThread):
-            response_ready = pyqtSignal(str)
+            response_ready = pyqtSignal(object)
             status_update = pyqtSignal(str)
             web_server_result = pyqtSignal(dict)
             agent_names_ready = pyqtSignal(list)
@@ -2575,7 +2595,7 @@ class ChatWindow:
                             self.chat_history = self.chat_history[-40:]
                         self.chat_history_updated.emit(self.chat_history.copy())
                         
-                        self.response_ready.emit(result_text)
+                        self.response_ready.emit(response)
                     else:
                         self.response_ready.emit("错误: 事件循环未初始化")
                 except asyncio.CancelledError:
@@ -2587,8 +2607,31 @@ class ChatWindow:
         
         def on_response(resp):
             progress_manager.clear_callback()
-            self.signal_helper.emit_auto_speak(resp)
-            self.append_message("agent", resp)
+            
+            skip_auto_speak = False
+            content = resp
+            metadata = None
+            
+            from loguru import logger
+            logger.info(f"🔍 on_response: resp type={type(resp)}, has_metadata={hasattr(resp, 'metadata')}")
+            
+            if hasattr(resp, 'metadata'):
+                metadata = resp.metadata
+                if metadata:
+                    skip_auto_speak = metadata.get('skip_auto_speak', False)
+                    logger.info(f"🔍 on_response: skip_auto_speak={skip_auto_speak}, metadata={metadata}")
+                else:
+                    logger.info(f"🔍 on_response: metadata is None or empty")
+            else:
+                logger.info(f"🔍 on_response: resp has no metadata attribute")
+            
+            if hasattr(resp, 'content'):
+                content = resp.content
+            
+            logger.info(f"🔍 on_response: calling append_message with metadata={metadata}")
+            if not skip_auto_speak:
+                self.signal_helper.emit_auto_speak(content)
+            self.append_message("agent", content, metadata)
         
         def on_chat_history_updated(history):
             self._chat_history = history

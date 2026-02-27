@@ -1,11 +1,12 @@
 from loguru import logger
 from typing import Dict, Any, Optional, List
 from ..base import BaseAgent, Task
-from ...tts import TTSManager
+from .tts_player import TTSPlayer
 from ..email_agent import EmailAgent
 import tempfile
 import os
 import asyncio
+import re
 
 class TTSAgent(BaseAgent):
     PRIORITY: int = 1
@@ -24,6 +25,9 @@ class TTSAgent(BaseAgent):
         "发到我邮箱": ("synthesize_and_send", {}),
         "有哪些音色": ("list_voices", {}),
         "语音合成有哪些声音": ("list_voices", {}),
+        "切换音色": ("list_voices", {}),
+        "更换音色": ("list_voices", {}),
+        "设置音色": ("list_voices", {}),
     }
     
     AVAILABLE_VOICES = {
@@ -53,20 +57,14 @@ class TTSAgent(BaseAgent):
             category="tts"
         )
         
-        try:
-            from ...config import settings
-            api_key = getattr(settings.llm, 'voice_dashscope_api_key', None)
-            if not api_key:
-                api_key = getattr(settings.llm, 'dashscope_api_key', None)
-            self.tts_manager = TTSManager(api_key=api_key)
-        except Exception as e:
-            logger.error(f"Failed to initialize TTSManager: {e}")
-            self.tts_manager = None
+        # 使用独立的 TTSPlayer，与系统消息的发声完全分开
+        self.tts_player = TTSPlayer()
+        logger.info("TTSAgent: Initialized with independent TTSPlayer")
     
     async def execute_task(self, task: Task) -> Any:
         if task.type == "action":
             return await self._handle_action(task.params)
-        elif task.type in ("tts_speak", "synthesize_and_play"):
+        elif task.type in ("tts_speak", "synthesize_and_play", "text_to_speech"):
             return await self._synthesize_and_play(task.params)
         elif task.type == "synthesize":
             return await self._synthesize(task.params)
@@ -74,7 +72,81 @@ class TTSAgent(BaseAgent):
             return await self._synthesize_and_send(task.params)
         elif task.type == "list_voices":
             return self._list_voices()
+        elif task.type == "agent_help":
+            return self._get_help_info()
+        elif task.type == "general":
+            text = task.params.get("text", task.content or "")
+            if not text:
+                return self.cannot_handle("未提供文本内容")
+            # 解析音色参数并清理文本
+            voice, cleaned_text = self._parse_voice_from_text(text)
+            return await self._synthesize_and_play({"text": cleaned_text, "voice": voice})
         return self.cannot_handle("未知操作")
+    
+    def _parse_voice_from_text(self, text: str) -> tuple:
+        """从文本中解析音色参数并清理文本
+        
+        支持的格式：
+        - 使用音色 longyue_v3
+        - 用龙悦v3的声音
+        - 用童声朗读
+        - 换成男声
+        
+        Returns:
+            tuple: (voice_code, cleaned_text)
+        """
+        text_lower = text.lower()
+        cleaned_text = text
+        voice_code = "longyue_v3"  # 默认音色
+        
+        # 定义音色关键词映射
+        voice_keywords = {
+            "longyue_v3": ["longyue_v3", "龙悦", "活力女声", "女声"],
+            "longfei_v3": ["longfei_v3", "龙飞", "磁性男声", "男声"],
+            "longshuo_v3": ["longshuo_v3", "龙硕", "沉稳男声"],
+            "longyingjing_v3": ["longyingjing_v3", "龙盈京", "京味女声", "京味"],
+            "longjielidou_v3": ["longjielidou_v3", "龙杰力豆", "童声", "儿童", "小孩"],
+        }
+        
+        # 定义需要移除的模式
+        remove_patterns = [
+            r"使用音色[:：]\s*",
+            r"使用音色\s+",
+            r"用音色[:：]\s*",
+            r"用音色\s+",
+            r"音色[:：]\s*",
+            r"音色\s+",
+            r"切换音色[:：]\s*",
+            r"切换音色\s+",
+            r"更换音色[:：]\s*",
+            r"更换音色\s+",
+            r"设置音色[:：]\s*",
+            r"设置音色\s+",
+            r"换成",
+            r"用",
+            r"的声音",
+            r"朗读",
+        ]
+        
+        # 首先尝试匹配音色代码
+        for voice, keywords in voice_keywords.items():
+            for keyword in keywords:
+                if keyword.lower() in text_lower:
+                    voice_code = voice
+                    # 从文本中移除音色关键词
+                    cleaned_text = re.sub(re.escape(keyword), "", cleaned_text, flags=re.IGNORECASE)
+                    break
+            if voice_code != "longyue_v3":
+                break
+        
+        # 移除音色设置相关的模式
+        for pattern in remove_patterns:
+            cleaned_text = re.sub(pattern, "", cleaned_text, flags=re.IGNORECASE)
+        
+        # 清理多余的空格
+        cleaned_text = re.sub(r"\s+", " ", cleaned_text).strip()
+        
+        return voice_code, cleaned_text
     
     async def _handle_action(self, params: Dict) -> str:
         action = params.get("action")
@@ -102,20 +174,13 @@ class TTSAgent(BaseAgent):
             return self.cannot_handle("文本内容不能为空")
         
         output_path = params.get("output_path")
-        if not output_path:
-            output_path = os.path.join(tempfile.gettempdir(), f"tts_{hash(text) % 1000000}.mp3")
-        
         voice = params.get("voice", "longyue_v3")
-        format_type = params.get("format", "mp3")
         
         if voice not in self.AVAILABLE_VOICES:
             return self.cannot_handle(f"不支持的音色: {voice}。可用音色: {', '.join(self.AVAILABLE_VOICES.keys())}")
         
-        if format_type not in ["mp3", "wav"]:
-            return self.cannot_handle("格式仅支持 mp3 或 wav")
-        
         try:
-            result_path = await self.tts_manager.synthesize_to_file(
+            result_path = await self.tts_player.synthesize_to_file(
                 text=text,
                 output_path=output_path,
                 voice=voice,
@@ -137,35 +202,19 @@ class TTSAgent(BaseAgent):
         if voice not in self.AVAILABLE_VOICES:
             return self.cannot_handle(f"不支持的音色: {voice}")
         
-        output_path = os.path.join(tempfile.gettempdir(), f"tts_play_{hash(text) % 1000000}.mp3")
-        
         try:
-            result_path = await self.tts_manager.synthesize_to_file(
-                text=text,
-                output_path=output_path,
-                voice=voice,
-            )
-            if not result_path:
+            # 先合成到文件
+            output_path = await self.tts_player.synthesize_to_file(text, voice=voice)
+            if not output_path:
                 return "❌ 语音合成失败，请检查API配置"
             
-            import platform
-            import subprocess
-            
-            if platform.system() == "Windows":
-                import ctypes
-                winmm = ctypes.windll.winmm
-                alias = "tts_play_audio"
-                winmm.mciSendStringW(f'open "{result_path}" alias {alias}', None, 0, None)
-                winmm.mciSendStringW(f'play {alias}', None, 0, None)
-                return f"✅ 已合成并播放: {result_path}"
+            # 然后播放
+            success = await self.tts_player._play_audio(output_path)
+            if success:
+                voice_name = self.AVAILABLE_VOICES.get(voice, voice)
+                return f"✅ 已合成并播放语音\n\n📝 文件路径: {output_path}\n🎙️ 使用音色: {voice_name}"
             else:
-                for player in ["afplay", "mpg123", "ffplay"]:
-                    try:
-                        proc = await asyncio.create_subprocess_exec(player, result_path)
-                        return f"✅ 已合成并播放: {result_path}"
-                    except:
-                        continue
-                return f"✅ 已生成音频文件: {result_path}（未找到播放器）"
+                return f"⚠️ 语音合成成功，但播放失败\n\n📝 文件路径: {output_path}"
         except Exception as e:
             logger.exception(f"TTS synthesize_and_play failed: {e}")
             raise e
@@ -183,11 +232,9 @@ class TTSAgent(BaseAgent):
         if voice not in self.AVAILABLE_VOICES:
             return self.cannot_handle(f"不支持的音色: {voice}")
         
-        output_path = os.path.join(tempfile.gettempdir(), f"tts_email_{hash(text) % 1000000}.mp3")
         try:
-            result_path = await self.tts_manager.synthesize_to_file(
+            result_path = await self.tts_player.synthesize_to_file(
                 text=text,
-                output_path=output_path,
                 voice=voice,
             )
             if not result_path:
@@ -212,3 +259,49 @@ class TTSAgent(BaseAgent):
     def _list_voices(self) -> str:
         voices_list = "\n".join([f"- {k}: {v}" for k, v in self.AVAILABLE_VOICES.items()])
         return f"✅ 可用音色:\n{voices_list}"
+    
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 语音合成智能体
+
+### 功能说明
+语音合成智能体可以将文本转换为语音音频文件，支持多种音色和格式输出。
+
+### 支持的操作
+- **语音合成**：将文本转换为语音文件
+- **语音播放**：合成并播放语音
+- **发送邮件**：合成语音并发送到邮箱
+- **查看音色**：列出所有可用音色
+- **设置音色**：切换不同的声音
+
+### 使用示例
+- "语音合成 今天天气真好" - 将文本转换为语音文件
+- "文字转语音 你好世界" - 将文本转换为语音文件
+- "朗读 这是一段测试文本" - 将文本转换为语音文件
+- "有哪些音色" - 查看所有可用音色
+- "语音合成 今天天气真好 发到我邮箱" - 合成语音并发送到邮箱
+
+### 支持的音色
+- longyue_v3: 龙悦v3 (活力女声) - 默认
+- longfei_v3: 龙飞v3 (磁性男声)
+- longshuo_v3: 龙硕v3 (沉稳男声)
+- longyingjing_v3: 龙盈京v3 (京味女声)
+- longjielidou_v3: 龙杰力豆v3 (童声)
+
+### 如何设置音色
+
+**方法1：直接指定音色代码**
+- "语音合成 今天天气真好 使用音色 longfei_v3"
+- "朗读 你好世界 用 longyue_v3"
+
+**方法2：使用音色名称**
+- "语音合成 今天天气真好 用龙飞的声音"
+- "朗读 你好世界 用童声"
+- "合成语音 测试文本 用京味女声"
+
+**方法3：使用音色特征**
+- "语音合成 今天天气真好 用男声"
+- "朗读 你好世界 用女声"
+
+### 支持的格式
+MP3, WAV"""

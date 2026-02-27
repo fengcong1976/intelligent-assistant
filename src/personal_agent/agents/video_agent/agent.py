@@ -186,6 +186,8 @@ class VideoAgent(BaseAgent):
             result = await self._handle_search(params)
         elif task_type == "list":
             result = await self._handle_list(params)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return f"❌ 不支持的视频操作: {task_type}"
         
@@ -552,3 +554,25 @@ class VideoAgent(BaseAgent):
             result_str += f"\n... 还有 {len(videos) - 20} 个视频"
         
         return result_str
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 视频智能体
+
+### 功能说明
+视频智能体可以播放本地视频文件，支持多种视频格式。
+
+### 支持的操作
+- **播放视频**：播放指定视频
+- **搜索视频**：在视频库中搜索
+- **视频列表**：查看所有视频
+- **视频控制**：播放、暂停、停止
+
+### 使用示例
+- "播放视频 [视频名称]" - 播放指定视频
+- "搜索电影" - 搜索视频
+- "查看视频列表" - 列出所有视频
+
+### 注意事项
+- 支持常见视频格式
+- 需要视频文件存在于视频库中
+- 支持全屏播放"""

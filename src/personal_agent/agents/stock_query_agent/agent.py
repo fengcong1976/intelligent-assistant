@@ -85,7 +85,7 @@ class StockQueryAgent(BaseAgent):
         
         self.register_capability(
             capability="query_stock",
-            description="查询股票行情信息。返回股票的实时价格、涨跌幅等信息。",
+            description="查询股票行情信息。支持股票代码（如'000001'）或公司名称（如'平安银行'、'美的集团'）。返回股票的实时价格、涨跌幅等信息。",
             aliases=[
                 "股票行情", "股票价格", "股票查询", "查股票", "股票信息",
                 "股价", "股票走势", "股票涨跌", "股票涨跌幅",
@@ -96,7 +96,7 @@ class StockQueryAgent(BaseAgent):
                 "properties": {
                     "stock_code": {
                         "type": "string",
-                        "description": "股票代码，如'000001'或'平安银行'"
+                        "description": "股票代码（如'000001'）或公司名称（如'平安银行'、'美的集团'、'伊利股份'、'中国人寿'）。支持中文公司名称和股票代码。"
                     }
                 },
                 "required": ["stock_code"]
@@ -198,6 +198,8 @@ class StockQueryAgent(BaseAgent):
             if result and "未找到" in result:
                 task.no_retry = True
             return result
+        elif task_type == "agent_help":
+            return self._get_help()
         else:
             return self._get_help()
     

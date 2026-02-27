@@ -200,6 +200,8 @@ class NewsAgent(BaseAgent):
                 return await self._get_categories()
             elif action == "get_sources":
                 return await self._get_sources()
+            elif task_type == "agent_help":
+                return self._get_help_info()
             else:
                 return f"❌ 未知的操作: {action}"
         
@@ -589,3 +591,25 @@ class NewsAgent(BaseAgent):
             "hot_news",
             "news_summary"
         ]
+
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 新闻智能体
+
+### 功能说明
+新闻智能体可以获取最新的新闻资讯，支持按类别、关键词搜索新闻。
+
+### 支持的操作
+- **获取新闻**：获取最新新闻
+- **搜索新闻**：按关键词搜索新闻
+- **热点新闻**：获取热门新闻
+- **分类新闻**：按类别获取新闻
+
+### 使用示例
+- "今天的新闻" - 获取最新新闻
+- "搜索人工智能新闻" - 搜索特定主题新闻
+- "热点新闻" - 获取热门新闻
+
+### 注意事项
+- 新闻来源来自网络
+- 部分新闻可能需要加载时间"""

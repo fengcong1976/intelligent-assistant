@@ -690,6 +690,7 @@ class MusicPlayer:
     def set_play_mode(self, mode: PlayMode):
         """设置播放模式"""
         self.play_mode = mode
+        self._save_data()
         mode_names = {
             PlayMode.SEQUENCE: "顺序播放",
             PlayMode.RANDOM: "随机播放",

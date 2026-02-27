@@ -151,6 +151,8 @@ class DocumentAgent(BaseAgent):
             return await self._handle_doc_generate(params)
         elif task_type == "excel_generate":
             return await self._handle_excel_generate(params)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return f"❌ 不支持的任务类型: {task_type}"
 
@@ -198,6 +200,8 @@ class DocumentAgent(BaseAgent):
                 return await self._handle_image_to_pdf({"path": file_path})
             elif suffix in [".xlsx", ".xls"]:
                 return await self._handle_excel_to_pdf({"path": file_path})
+            elif task_type == "agent_help":
+                return self._get_help_info()
             else:
                 return f"❌ 不支持的文件格式: {suffix}"
         elif "转word" in original_text or "转成word" in original_text or "转换为word" in original_text:
@@ -1078,6 +1082,8 @@ class DocumentAgent(BaseAgent):
             return await self._handle_pdf_to_word(params)
         elif target_format in ["image", "png", "jpg", "jpeg"]:
             return await self._handle_pdf_to_image(params)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return f"❌ 不支持的目标格式: {target_format}"
 
@@ -1459,3 +1465,26 @@ class DocumentAgent(BaseAgent):
             "pdf2image_available": self._check_pdf2image(),
         })
         return status
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 文档智能体
+
+### 功能说明
+文档智能体可以处理各种文档操作，包括PDF转换、文档生成等。
+
+### 支持的操作
+- **PDF转Word**：将PDF转换为Word文档
+- **Word转PDF**：将Word转换为PDF
+- **PDF合并**：合并多个PDF文件
+- **PDF拆分**：拆分PDF文件
+- **文档生成**：生成各种格式文档
+
+### 使用示例
+- "把PDF转成Word" - PDF转Word
+- "合并PDF文件" - 合并多个PDF
+- "生成PDF文档" - 生成新文档
+
+### 注意事项
+- 支持多种文档格式
+- 大文件处理可能需要时间
+- 转换后的文档会保存在指定目录"""

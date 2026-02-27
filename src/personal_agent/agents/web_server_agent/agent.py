@@ -126,6 +126,8 @@ class WebServerAgent(BaseAgent):
             return await self._start_server(port)
         elif task_type == "show_qr_code":
             return await self._show_qr_code()
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return {"success": False, "message": f"未知任务类型: {task_type}"}
 
@@ -1053,3 +1055,25 @@ class WebServerAgent(BaseAgent):
         """停止智能体"""
         await self._stop_server()
         await super().stop()
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## Web服务器智能体
+
+### 功能说明
+Web服务器智能体可以启动本地Web服务器，支持文件共享。
+
+### 支持的操作
+- **启动服务器**：启动Web服务器
+- **停止服务器**：停止Web服务器
+- **查看状态**：查看服务器状态
+- **显示二维码**：显示访问二维码
+
+### 使用示例
+- "启动Web服务器" - 启动服务器
+- "停止服务器" - 停止服务器
+- "显示二维码" - 显示访问二维码
+
+### 注意事项
+- 需要配置端口号
+- 同一网络下的设备可以访问
+- 支持文件上传下载"""

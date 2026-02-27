@@ -79,6 +79,8 @@ class ProactiveAgent(BaseAgent):
             return await self._add_scheduled_task(params)
         elif task_type == "get_upcoming_events":
             return await self._get_upcoming_events(params)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return f"❌ 不支持的主动任务: {task_type}"
 
@@ -199,3 +201,23 @@ class ProactiveAgent(BaseAgent):
     def add_user_insight(self, insight: UserInsight):
         """添加用户洞察"""
         self.thinking_engine.add_insight(insight)
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 主动智能体
+
+### 功能说明
+主动智能体可以主动执行任务，支持定时任务、用户画像管理。
+
+### 支持的操作
+- **保存用户档案**：管理用户信息
+- **添加定时任务**：设置定时执行的任务
+- **获取用户洞察**：分析用户行为
+
+### 使用示例
+- "添加定时任务" - 设置定时任务
+- "保存用户档案" - 保存用户信息
+
+### 注意事项
+- 定时任务会按计划执行
+- 用户档案用于个性化服务
+- 支持多种任务类型"""

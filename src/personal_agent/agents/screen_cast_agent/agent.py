@@ -94,6 +94,8 @@ class ScreenCastAgent(BaseAgent):
             result = self._list_devices()
         elif task_type in ["receive_phone", "phone_screen", "android_mirror"]:
             result = await self._receive_phone_screen(params)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return f"❌ 不支持的操作: {task_type}"
         
@@ -549,3 +551,25 @@ class ScreenCastAgent(BaseAgent):
 3. 选择电脑
 """
         return guide
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 投屏智能体
+
+### 功能说明
+投屏智能体可以将内容投屏到电视等设备，支持DLNA协议。
+
+### 支持的操作
+- **发现设备**：搜索可投屏设备
+- **投屏视频**：将视频投屏到设备
+- **停止投屏**：停止当前投屏
+- **屏幕镜像**：镜像屏幕内容
+
+### 使用示例
+- "搜索投屏设备" - 发现可用设备
+- "投屏到电视" - 开始投屏
+- "停止投屏" - 停止投屏
+
+### 注意事项
+- 需要设备和电脑在同一网络
+- 支持DLNA协议的设备
+- 部分设备可能需要配对"""

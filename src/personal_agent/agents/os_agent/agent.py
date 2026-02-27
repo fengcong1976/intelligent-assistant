@@ -68,6 +68,23 @@ class OSAgent(BaseAgent):
         "网络状态": ("network_info", {}),
         "蓝牙": ("bluetooth_status", {}),
         "蓝牙状态": ("bluetooth_status", {}),
+        # 音频设备
+        "音频设备": ("audio_list", {}),
+        "声音设备": ("audio_list", {}),
+        "音频设备列表": ("audio_list", {}),
+        "声音设备列表": ("audio_list", {}),
+        "列出音频设备": ("audio_list", {}),
+        "列出声音设备": ("audio_list", {}),
+        "切换音频输出": ("audio_output_switch", {}),
+        "切换声音输出": ("audio_output_switch", {}),
+        "切换扬声器": ("audio_output_switch", {}),
+        "切换输出设备": ("audio_output_switch", {}),
+        "切换音频输入": ("audio_input_switch", {}),
+        "切换声音输入": ("audio_input_switch", {}),
+        "切换麦克风": ("audio_input_switch", {}),
+        "切换输入设备": ("audio_input_switch", {}),
+        "默认扬声器": ("audio_output_default", {}),
+        "默认麦克风": ("audio_input_default", {}),
         # 电池和电源
         "电池": ("battery_status", {}),
         "电量": ("battery_status", {}),
@@ -360,6 +377,52 @@ class OSAgent(BaseAgent):
             category="system"
         )
         
+        self.register_capability(
+            capability="audio_device_control",
+            description="控制音频设备。支持列出音频设备、切换音频输出设备（扬声器）、切换音频输入设备（麦克风）。",
+            aliases=[
+                "音频设备", "声音设备", "音频设备列表", "声音设备列表",
+                "列出音频设备", "列出声音设备",
+                "切换音频输出", "切换声音输出", "切换扬声器", "切换输出设备",
+                "切换音频输入", "切换声音输入", "切换麦克风", "切换输入设备",
+                "默认扬声器", "默认麦克风"
+            ],
+            alias_params={
+                "音频设备": {"operation": "list"},
+                "声音设备": {"operation": "list"},
+                "音频设备列表": {"operation": "list"},
+                "声音设备列表": {"operation": "list"},
+                "列出音频设备": {"operation": "list"},
+                "列出声音设备": {"operation": "list"},
+                "切换音频输出": {"operation": "switch_output"},
+                "切换声音输出": {"operation": "switch_output"},
+                "切换扬声器": {"operation": "switch_output"},
+                "切换输出设备": {"operation": "switch_output"},
+                "切换音频输入": {"operation": "switch_input"},
+                "切换声音输入": {"operation": "switch_input"},
+                "切换麦克风": {"operation": "switch_input"},
+                "切换输入设备": {"operation": "switch_input"},
+                "默认扬声器": {"operation": "default_output"},
+                "默认麦克风": {"operation": "default_input"}
+            },
+            parameters={
+                "type": "object",
+                "properties": {
+                    "operation": {
+                        "type": "string",
+                        "enum": ["list", "switch_output", "switch_input", "default_output", "default_input"],
+                        "description": "操作类型：list(列出设备)、switch_output(切换输出设备)、switch_input(切换输入设备)、default_output(设置默认输出)、default_input(设置默认输入)"
+                    },
+                    "device": {
+                        "type": "string",
+                        "description": "设备名称或索引（切换设备时使用）"
+                    }
+                },
+                "required": ["operation"]
+            },
+            category="system"
+        )
+        
         self.system = platform.system()
         logger.info(f"🖥️ 操作系统智能体已初始化 (系统: {self.system})")
 
@@ -369,7 +432,10 @@ class OSAgent(BaseAgent):
         
         action = params.get("action", "") or params.get("command", "")
         if not action:
-            action = task.type.replace("system_control", "").replace("_control", "").strip()
+            if task.type == "audio_device_control":
+                action = "audio_device_control"
+            else:
+                action = task.type.replace("system_control", "").replace("_control", "").strip()
         
         if task.type == "general":
             action = self._parse_general_action(params.get("text", ""))
@@ -522,10 +588,32 @@ class OSAgent(BaseAgent):
                 return await self._monitor_off()
             elif action == "display_output":
                 return await self._switch_display_output(params.get("output", "internal"))
+            
+            # ==================== 音频设备控制 ====================
+            elif action in ("audio_list", "audio_device_control"):
+                operation = params.get("operation", "list")
+                if operation == "list":
+                    return await self._list_audio_devices()
+                elif operation == "switch_output":
+                    return await self._switch_audio_output(params.get("device"))
+                elif operation == "switch_input":
+                    return await self._switch_audio_input(params.get("device"))
+                elif operation == "default_output":
+                    return await self._set_default_audio_output(params.get("device"))
+                elif operation == "default_input":
+                    return await self._set_default_audio_input(params.get("device"))
+                else:
+                    return await self._list_audio_devices()
             elif action == "audio_output":
                 return await self._switch_audio_output(params.get("device"))
-            elif action == "audio_list":
-                return await self._list_audio_devices()
+            elif action == "audio_output_switch":
+                return await self._switch_audio_output(params.get("device"))
+            elif action == "audio_input_switch":
+                return await self._switch_audio_input(params.get("device"))
+            elif action == "audio_output_default":
+                return await self._set_default_audio_output(params.get("device"))
+            elif action == "audio_input_default":
+                return await self._set_default_audio_input(params.get("device"))
             
             # ==================== 时间日期 ====================
             elif action == "time_now":
@@ -537,7 +625,10 @@ class OSAgent(BaseAgent):
             elif action == "clean_temp":
                 return await self._clean_temp()
             elif action == "empty_recycle":
-                return await self._empty_recycle()
+                result = await self._empty_recycle(confirm=params.get("confirm", False))
+                if result == "CONFIRM_EMPTY_RECYCLE":
+                    return "⚠️ 清空回收站将永久删除所有文件，无法恢复！\n\n确认要清空回收站吗？请回复\"确认\"或\"取消\"。"
+                return result
             
             # ==================== 通知 ====================
             elif action == "notification":
@@ -602,6 +693,15 @@ class OSAgent(BaseAgent):
                 return "brightness_down"
             return "brightness_get"
         
+        audio_device_keywords = ["音频设备", "声音设备", "音频", "扬声器", "麦克风", "输出设备", "输入设备"]
+        if any(kw in text_lower for kw in audio_device_keywords):
+            if "切换" in text_lower or "换" in text_lower:
+                if "输出" in text_lower or "扬声器" in text_lower:
+                    return "audio_output_switch"
+                elif "输入" in text_lower or "麦克风" in text_lower:
+                    return "audio_input_switch"
+            return "audio_list"
+        
         system_keywords = ["系统信息", "cpu", "内存", "磁盘"]
         if any(kw in text_lower for kw in system_keywords):
             return "system_info"
@@ -616,6 +716,11 @@ class OSAgent(BaseAgent):
 • 静音 / 取消静音 - 系统静音控制
 • 声音大一点 / 声音小一点 - 调节音量
 • 音量 - 查看当前音量
+
+📌 音频设备：
+• 音频设备 / 声音设备 - 列出所有音频设备
+• 切换音频输出 [设备名] - 切换扬声器
+• 切换音频输入 [设备名] - 切换麦克风
 
 📌 系统电源：
 • 关机 / 重启 / 注销 / 锁屏 / 休眠
@@ -678,7 +783,10 @@ class OSAgent(BaseAgent):
 
     async def _run_powershell(self, script: str) -> tuple:
         """运行 PowerShell 脚本"""
-        cmd = f'powershell -ExecutionPolicy Bypass -Command "{script}"'
+        import base64
+        script_bytes = script.encode('utf-16le')
+        encoded_script = base64.b64encode(script_bytes).decode('ascii')
+        cmd = f'powershell -EncodedCommand {encoded_script}'
         return await self._run_command(cmd)
 
     # ==================== 音量控制 ====================
@@ -1547,27 +1655,126 @@ class OSAgent(BaseAgent):
                 return f"🖥️ 显示模式已切换: {output}"
         return "❌ 切换显示输出失败"
 
-    async def _switch_audio_output(self, device: str) -> str:
-        """切换音频输出"""
+    async def _switch_audio_output(self, device: str = None) -> str:
+        """切换音频输出设备，不带参数时循环切换到下一个设备"""
         if self.system == "Windows":
-            ps_script = f'''
-            Get-AudioDevice -List | Where-Object {{ $_.Type -eq "Playback" -and $_.Name -like "*{device}*" }} | 
-            Set-AudioDevice
-            '''
+            devices = await self._get_audio_devices("Playback")
+            if not devices:
+                return "❌ 未找到音频输出设备"
+            
+            if not device:
+                current_default = None
+                current_index = -1
+                for i, d in enumerate(devices):
+                    if d.get("Default"):
+                        current_default = d
+                        current_index = i
+                        break
+                
+                if current_default is None or len(devices) == 1:
+                    target_device = devices[0].get('Name', devices[0].get('name', '未知'))
+                else:
+                    next_index = (current_index + 1) % len(devices)
+                    target_device = devices[next_index].get('Name', devices[next_index].get('name', '未知'))
+                
+                device = target_device
+            
+            ps_script = f"Import-Module AudioDeviceCmdlets -ErrorAction SilentlyContinue; $device = Get-AudioDevice -List | Where-Object {{ $_.Type -eq 'Playback' -and $_.Name -like '*{device}*' }} | Select-Object -First 1; if ($device) {{ $device | Set-AudioDevice; Write-Output $device.Name }}"
             return_code, stdout, stderr = await self._run_powershell(ps_script)
-            if return_code == 0:
-                return f"🎧 音频输出已切换到: {device}"
+            if return_code == 0 and stdout.strip():
+                return f"🎧 音频输出已切换到: {stdout.strip()}"
         return f"❌ 切换音频输出失败: {device}"
+
+    async def _switch_audio_input(self, device: str = None) -> str:
+        """切换音频输入设备（麦克风），不带参数时循环切换到下一个设备"""
+        if self.system == "Windows":
+            devices = await self._get_audio_devices("Recording")
+            if not devices:
+                return "❌ 未找到音频输入设备"
+            
+            if not device:
+                current_default = None
+                current_index = -1
+                for i, d in enumerate(devices):
+                    if d.get("Default"):
+                        current_default = d
+                        current_index = i
+                        break
+                
+                if current_default is None or len(devices) == 1:
+                    target_device = devices[0].get('Name', devices[0].get('name', '未知'))
+                else:
+                    next_index = (current_index + 1) % len(devices)
+                    target_device = devices[next_index].get('Name', devices[next_index].get('name', '未知'))
+                
+                device = target_device
+            
+            ps_script = f"Import-Module AudioDeviceCmdlets -ErrorAction SilentlyContinue; $device = Get-AudioDevice -List | Where-Object {{ $_.Type -eq 'Recording' -and $_.Name -like '*{device}*' }} | Select-Object -First 1; if ($device) {{ $device | Set-AudioDevice; Write-Output $device.Name }}"
+            return_code, stdout, stderr = await self._run_powershell(ps_script)
+            if return_code == 0 and stdout.strip():
+                return f"🎤 音频输入已切换到: {stdout.strip()}"
+        return f"❌ 切换音频输入失败: {device}"
+
+    async def _set_default_audio_output(self, device: str) -> str:
+        """设置默认音频输出设备"""
+        return await self._switch_audio_output(device)
+
+    async def _set_default_audio_input(self, device: str) -> str:
+        """设置默认音频输入设备"""
+        return await self._switch_audio_input(device)
+
+    async def _get_audio_devices(self, device_type: str = None) -> list:
+        """获取音频设备列表"""
+        if self.system == "Windows":
+            if device_type:
+                ps_script = f"Import-Module AudioDeviceCmdlets -ErrorAction SilentlyContinue; Get-AudioDevice -List | Where-Object {{ $_.Type -eq '{device_type}' }} | Select-Object Name, Default | ConvertTo-Json"
+            else:
+                ps_script = "Import-Module AudioDeviceCmdlets -ErrorAction SilentlyContinue; Get-AudioDevice -List | Select-Object Type, Name, Default | ConvertTo-Json"
+            return_code, stdout, stderr = await self._run_powershell(ps_script)
+            logger.info(f"🔍 音频设备查询: return_code={return_code}, stdout={stdout[:200] if stdout else 'empty'}, stderr={stderr}")
+            if return_code == 0 and stdout.strip():
+                try:
+                    import json
+                    devices = json.loads(stdout)
+                    if isinstance(devices, dict):
+                        devices = [devices]
+                    logger.info(f"🔍 解析到的设备: {devices}")
+                    return devices
+                except Exception as e:
+                    logger.error(f"🔍 JSON 解析失败: {e}")
+        return []
 
     async def _list_audio_devices(self) -> str:
         """列出音频设备"""
         if self.system == "Windows":
-            ps_script = '''
-            Get-AudioDevice -List | Format-Table Type, Name, Default -AutoSize
-            '''
-            return_code, stdout, stderr = await self._run_powershell(ps_script)
-            if return_code == 0:
-                return f"🎧 音频设备列表:\n{stdout}"
+            playback_devices = await self._get_audio_devices("Playback")
+            recording_devices = await self._get_audio_devices("Recording")
+            
+            result = "🎧 音频设备列表:\n\n"
+            
+            if playback_devices:
+                result += "📢 输出设备（扬声器）:\n"
+                for i, d in enumerate(playback_devices, 1):
+                    default_mark = " [默认]" if d.get("Default") else ""
+                    result += f"  {i}. {d.get('Name', d.get('name', '未知'))}{default_mark}\n"
+            else:
+                result += "📢 输出设备: 未找到\n"
+            
+            result += "\n"
+            
+            if recording_devices:
+                result += "🎤 输入设备（麦克风）:\n"
+                for i, d in enumerate(recording_devices, 1):
+                    default_mark = " [默认]" if d.get("Default") else ""
+                    result += f"  {i}. {d.get('Name', d.get('name', '未知'))}{default_mark}\n"
+            else:
+                result += "🎤 输入设备: 未找到\n"
+            
+            result += "\n💡 使用方法:\n"
+            result += "  • 切换扬声器: 切换音频输出 设备名称\n"
+            result += "  • 切换麦克风: 切换音频输入 设备名称\n"
+            
+            return result
         return "❌ 无法获取音频设备列表"
 
     # ==================== 时间日期 ====================
@@ -1586,40 +1793,66 @@ class OSAgent(BaseAgent):
     # ==================== 清理维护 ====================
     async def _clean_temp(self) -> str:
         """清理临时文件"""
+        logger.info(f"🧹 开始清理临时文件")
         if self.system == "Windows":
             temp_paths = [
                 os.environ.get('TEMP', ''),
                 os.path.join(os.environ.get('SystemRoot', 'C:\\Windows'), 'Temp'),
             ]
             
-            cleaned = 0
+            logger.info(f"🧹 临时文件路径: {temp_paths}")
+            
+            cleaned_files = 0
+            cleaned_dirs = 0
             errors = 0
             
             for temp_path in temp_paths:
+                logger.info(f"🧹 检查路径: {temp_path}, 存在: {os.path.exists(temp_path) if temp_path else False}")
                 if not temp_path or not os.path.exists(temp_path):
                     continue
                     
-                for root, dirs, files in os.walk(temp_path):
-                    for file in files:
-                        try:
-                            file_path = os.path.join(root, file)
-                            os.remove(file_path)
-                            cleaned += 1
-                        except:
-                            errors += 1
+                try:
+                    # 递归删除所有文件和子目录
+                    for root, dirs, files in os.walk(temp_path, topdown=False):
+                        # 删除所有文件
+                        for file in files:
+                            try:
+                                file_path = os.path.join(root, file)
+                                os.remove(file_path)
+                                cleaned_files += 1
+                            except Exception as e:
+                                errors += 1
+                        
+                        # 删除所有空子目录
+                        for dir_name in dirs:
+                            try:
+                                dir_path = os.path.join(root, dir_name)
+                                os.rmdir(dir_path)
+                                cleaned_dirs += 1
+                            except:
+                                pass
+                except Exception as e:
+                    logger.error(f"🧹 清理失败: {e}")
+                    errors += 1
             
-            return f"🧹 清理完成: 删除 {cleaned} 个临时文件，跳过 {errors} 个正在使用的文件"
+            logger.info(f"🧹 清理完成: 删除 {cleaned_files} 个文件，{cleaned_dirs} 个目录，跳过 {errors} 个正在使用的文件")
+            return f"🧹 清理完成: 删除 {cleaned_files} 个文件，{cleaned_dirs} 个目录，跳过 {errors} 个正在使用的文件"
+        logger.error(f"❌ 不支持的操作系统: {self.system}")
         return "❌ 清理失败"
 
-    async def _empty_recycle(self) -> str:
-        """清空回收站"""
+    async def _empty_recycle(self, confirm: bool = False) -> str:
+        """清空回收站（需要确认）"""
         if self.system == "Windows":
-            ps_script = '''
-            Clear-RecycleBin -Force -ErrorAction SilentlyContinue
-            '''
+            if not confirm:
+                return "CONFIRM_EMPTY_RECYCLE"
+            
+            ps_script = 'Clear-RecycleBin -Force -ErrorAction Stop; if ($?) { Write-Output "Recycle bin cleared successfully" } else { Write-Output "Error: Failed to clear recycle bin" }'
             return_code, stdout, stderr = await self._run_powershell(ps_script)
-            if return_code == 0:
+            logger.info(f"🗑️ 清空回收站 - 返回码: {return_code}, stdout: '{stdout}', stderr: '{stderr}'")
+            if return_code == 0 and "successfully" in stdout:
                 return "🗑️ 回收站已清空"
+            elif return_code == 0 and "Error:" in stdout:
+                return f"❌ 清空回收站失败: {stdout.replace('Error: ', '').strip()}"
         return "❌ 清空回收站失败"
 
     # ==================== 通知 ====================

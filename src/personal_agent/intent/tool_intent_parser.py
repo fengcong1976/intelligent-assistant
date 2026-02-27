@@ -21,7 +21,7 @@ Tool-Based Intent Parser - 基于工具查询的意图解析器
 4. 如果预筛选失败：让LLM自行判断是否需要工具
 5. LLM选择工具后：返回工具调用结果
 """
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from loguru import logger
 from dataclasses import dataclass
 import json
@@ -134,36 +134,48 @@ class ToolBasedIntentParser:
             return self._system_prompt_cache
         
         base_prompt = """根据用户输入，判断是否需要调用工具。
-规则：
+
+【核心规则】
 1. 能直接回答的问题（知识、翻译、闲聊等）直接回答，不调用工具
 2. 需要实时数据、特定操作、外部系统、文件操作时调用工具
-3. 多操作时调用多个工具，用逗号分隔
-4. 工具名称固定，用参数控制行为（如play_music(action="next")）
-5. 如果用户请求包含"发送"、"发到"、"发给"、"邮箱"、"邮件"等关键词，必须调用send_email工具
-6. 如果用户请求包含"保存"、"生成"、"存成"、"存为"、"文档"、"pdf"、"word"、"excel"等关键词，必须调用save_document工具
-7. 当用户同时要求生成/保存文档和发送邮件时，必须同时调用save_document和send_email两个工具
-8. 当用户同时要求生成图片和发送邮件时，必须同时调用generate_image和send_email两个工具
-9. 当用户输入包含多个不同的操作关键词时，必须调用对应的多个工具，不要只选择其中一个
-10. 如果操作分析中显示多个操作（如"生成/保存文档、发送邮件"），必须调用所有对应的工具
+3. 工具名称固定，用参数控制行为（如play_music(action="next")）
+4. 【非常重要】如果系统提供了工具列表，必须从提供的工具中选择，不能选择其他工具
+5. 【非常重要】必须返回工具调用格式：tool_name(param1="value1", param2="value2")，不能返回自然语言
+6. 【非常重要】不能返回占位符或示例格式（如 tool_name(param1="value1")），必须返回实际的工具调用和参数值
 
-特别注意：
-- 用户说"写...并保存...发到..."时，必须同时调用save_document和send_email
-- 用户说"生成...并发给..."时，必须同时调用generate_image和send_email
-- 不要只选择其中一个工具，必须同时调用所有相关工具
+【联系人信息提取规则 - 非常重要】
+当用户提到添加联系人时，必须提取以下信息：
+- 姓名：联系人的名字（如"小乱了"、"张三"）
+- 邮箱：邮箱地址（如"1000@qq.com"）
+- 电话：电话号码（如"13800138000"）
+- 关系：关系描述（如"朋友"、"同事"、"领导"、"家人"、"同学"）
 
-返回格式：
-- 需要工具：工具调用，如 get_weather(city="北京")
-- 多个工具：generate_image(prompt="西安钟楼"), send_email(to="傅总", attachment="{generate_image.first_file_path}")
-- 多个工具：save_document(content="西安钟楼介绍", filename="西安钟楼.pdf"), send_email(to="小聪聪", attachment="{save_document.file_path}")
-- 不需要工具：直接回答，如 "端午节是中国传统节日..."
+示例：
+- "添加 小乱了 1000@qq.com 朋友 到通讯录" -> contact_add(name="小乱了", email="1000@qq.com", relationship="朋友")
+- "保存老板 234566@qq.com 领导" -> contact_add(name="老板", email="234566@qq.com", relationship="领导")
+- "添加张三 13800138000 同事" -> contact_add(name="张三", phone="13800138000", relationship="同事")
 
-重要说明：
-- 多工具调用时，用逗号分隔多个工具调用
-- 如果需要将前一个工具的输出作为后一个工具的参数，使用{工具名.参数名}的格式
-- 例如：{save_document.file_path}表示使用save_document工具返回的file_path参数值
-- 例如：{generate_image.first_file_path}表示使用generate_image工具返回的first_file_path参数值
+【多工具调用规则 - 非常重要】
+当用户请求包含多个操作时，必须同时调用所有相关工具，用逗号分隔：
 
-示例："""
+- "保存/生成/存成" + "发送/发到/发给" = save_document + send_email
+- "生成图片/照片" + "发送/发到/发给" = generate_image + send_email
+- "写...并...发到..." = save_document + send_email
+- "生成...并发给..." = generate_image + send_email
+
+【参数传递规则】
+使用 {工具名.参数名} 格式传递前一个工具的输出：
+- {save_document.file_path} = save_document返回的file_path
+- {generate_image.first_file_path} = generate_image返回的first_file_path
+
+【返回格式要求】
+- 必须使用工具调用格式：tool_name(param1="value1", param2="value2")
+- 示例：query_stock(stock_code="平安银行")、contact_add(name="张三", email="xxx@qq.com", relationship="朋友")
+- 不能返回自然语言描述
+- 不能选择未提供的工具
+- 不能返回示例格式（如 tool_name(param1="value1")），必须返回实际工具调用
+
+【单工具示例】"""
         
         # 从工具注册表生成示例（只为匹配的工具生成）
         if matched_tools:
@@ -325,6 +337,8 @@ class ToolBasedIntentParser:
             return "xxx@xx.com"
         elif param_name == "phone" or "电话" in param_desc:
             return "13800138000"
+        elif param_name == "relationship" or "关系" in param_desc:
+            return "朋友"
         elif param_name == "destination" or "目的地" in param_desc:
             return "西安"
         elif param_name == "url" or "链接" in param_desc:
@@ -350,7 +364,7 @@ class ToolBasedIntentParser:
         elif tool_name == "generate_image":
             user_inputs.extend(["生成一张荷花照片", "生成一张1920*1080的荷花照片"])
         elif tool_name == "query_stock":
-            user_inputs.extend(["伊利股份股票行情", "中国人寿股票"])
+            user_inputs.extend(["伊利股份股票行情", "中国人寿股票", "美的集团股票行情", "平安银行股票", "000001股票", "贵州茅台股价"])
         elif tool_name == "query_index":
             user_inputs.extend(["今天大盘怎么样", "大盘指数", "上证指数"])
         elif tool_name == "web_search":
@@ -392,7 +406,7 @@ class ToolBasedIntentParser:
         elif tool_name == "get_disk_space":
             user_inputs.append("E盘空间")
         elif tool_name == "add_contact":
-            user_inputs.append("添加联系人")
+            user_inputs.extend(["添加联系人", "添加 小乱了 1000@qq.com 朋友 到通讯录", "保存老板 234566@qq.com 领导", "添加张三 13800138000 同事"])
         elif tool_name == "query_contact":
             user_inputs.append("查询联系人")
         elif tool_name == "list_contacts":
@@ -410,7 +424,7 @@ class ToolBasedIntentParser:
             return result.steps[0]
         return result
     
-    async def parse_all(self, user_input: str, context: Dict[str, Any] = None):
+    async def parse_all(self, user_input: str, context: Dict[str, Any] = None, master=None):
         """解析用户输入，通过工具查询机制选择工具"""
         import time
         start_time = time.time()
@@ -430,6 +444,38 @@ class ToolBasedIntentParser:
             logger.info(f"💾 使用缓存结果: {cache_key[:50]}...")
             logger.info(f"⏱️ [计时] parse_all 总耗时: {time.time() - start_time:.2f}秒")
             return self._result_cache[cache_key]
+        
+        # 检查是否为确认关键词
+        if master and hasattr(master, '_pending_action') and master._pending_action:
+            confirm_keywords = ["好的", "可以", "行", "是的", "确认", "确定", "好", "OK", "ok", "Ok"]
+            if user_input.strip() in confirm_keywords:
+                logger.info(f"✅ 用户确认执行待处理操作")
+                # 返回一个特殊的工具调用结果，表示需要执行待处理操作
+                return ToolCallResult(
+                    tool_name="confirm_action",
+                    arguments={"original_text": user_input},
+                    agent_name="master",
+                    need_history=False,
+                    history_query=None,
+                    answer="CONFIRM"
+                )
+        
+        # 检查是否为帮助请求（@智能体 /？ 或 @智能体 /?）
+        if master and user_input.strip().startswith("@"):
+            help_patterns = ['/?', '/？', '?', '？', 'help', '帮助']
+            request_clean = user_input.strip().lower()
+            # 检查是否是 @智能体 /？ 格式
+            if any(request_clean.endswith(p) for p in help_patterns):
+                logger.info(f"💡 检测到帮助请求: {user_input}")
+                # 返回一个特殊的工具调用结果，表示需要显示帮助信息
+                return ToolCallResult(
+                    tool_name="agent_help",
+                    arguments={"original_text": user_input},
+                    agent_name="master",
+                    need_history=False,
+                    history_query=None,
+                    answer="HELP"
+                )
         
         # 完全匹配快速跳转：检查用户输入是否完全匹配某个智能体的关键词
         exact_match_result = self._check_exact_match(user_input)
@@ -480,6 +526,10 @@ class ToolBasedIntentParser:
                         parameters=tool.parameters
                     ))
                 
+                logger.info(f"🔧 传递给 LLM 的工具定义: {[t.name for t in tool_defs]}")
+                for tool_def in tool_defs:
+                    logger.info(f"   - {tool_def.name}: {tool_def.description[:100]}...")
+                
                 messages = [
                     {"role": "system", "content": self._get_system_prompt(matched_tools)},
                     {"role": "user", "content": user_input + context_info}
@@ -494,6 +544,38 @@ class ToolBasedIntentParser:
                 )
                 logger.info(f"⏱️ [计时] LLM调用完成，耗时: {time.time() - t1:.2f}秒")
                 
+                # 如果检测到多个操作但LLM只返回了一个工具，强制调用所有相关工具
+                if operation_analysis and "、" in operation_analysis and response.tool_calls and len(response.tool_calls) == 1:
+                    logger.warning(f"⚠️ 检测到多个操作但LLM只返回了一个工具，强制调用所有相关工具")
+                    logger.warning(f"⚠️ 操作分析: {operation_analysis}")
+                    logger.warning(f"⚠️ 预筛选工具: {[t.name for t in matched_tools]}")
+                    
+                    # 创建多个工具调用
+                    steps = []
+                    for tool in matched_tools:
+                        result = await self._handle_direct_tool_call(
+                            type('ToolCall', (), {
+                                'name': tool.name,
+                                'arguments': {}
+                            }),
+                            user_input
+                        )
+                        if result:
+                            steps.append(result)
+                    
+                    if steps:
+                        logger.info(f"✅ 强制调用 {len(steps)} 个工具: {[s.tool_name for s in steps]}")
+                        logger.info(f"⏱️ [计时] parse_all 总耗时: {time.time() - start_time:.2f}秒")
+                        
+                        if len(steps) == 1:
+                            return steps[0]
+                        
+                        return WorkflowResult(
+                            steps=steps,
+                            is_workflow=True,
+                            original_text=user_input
+                        )
+                
                 if response.usage:
                     prompt_tokens = response.usage.get("prompt_tokens", 0)
                     completion_tokens = response.usage.get("completion_tokens", 0)
@@ -506,57 +588,119 @@ class ToolBasedIntentParser:
                         logger.error(f"Token更新失败: {e}")
                 
                 if response.tool_calls:
-                    for tool_call in response.tool_calls:
-                        result = await self._handle_direct_tool_call(tool_call, user_input)
-                        # 缓存结果
+                    tool_calls_count = len(response.tool_calls)
+                    logger.info(f"📊 LLM 返回 {tool_calls_count} 个工具调用: {[tc.name for tc in response.tool_calls]}")
+                    
+                    # 验证 LLM 返回的工具是否在预筛选列表中
+                    valid_tool_names = [t.name for t in matched_tools]
+                    invalid_tools = [tc.name for tc in response.tool_calls if tc.name not in valid_tool_names]
+                    
+                    if invalid_tools:
+                        logger.warning(f"⚠️ LLM 返回了不在预筛选列表中的工具: {invalid_tools}")
+                        logger.warning(f"⚠️ 预筛选工具: {valid_tool_names}")
+                        logger.warning(f"⚠️ 强制使用预筛选的第一个工具: {matched_tools[0].name}")
+                        
+                        # 强制使用预筛选的第一个工具
+                        result = await self._handle_direct_tool_call(
+                            type('ToolCall', (), {
+                                'name': matched_tools[0].name,
+                                'arguments': {}
+                            }),
+                            user_input
+                        )
                         if result and self._cache_key:
                             self._result_cache[self._cache_key] = result
                         logger.info(f"⏱️ [计时] parse_all 总耗时: {time.time() - start_time:.2f}秒")
                         return result
+                    
+                    if tool_calls_count == 1:
+                        result = await self._handle_direct_tool_call(response.tool_calls[0], user_input)
+                        if result and self._cache_key:
+                            self._result_cache[self._cache_key] = result
+                        logger.info(f"⏱️ [计时] parse_all 总耗时: {time.time() - start_time:.2f}秒")
+                        return result
+                    else:
+                        steps = []
+                        for tool_call in response.tool_calls:
+                            result = await self._handle_direct_tool_call(tool_call, user_input)
+                            if result:
+                                steps.append(result)
+                        
+                        if steps:
+                            logger.info(f"✅ 多工具调用: {[s.tool_name for s in steps]}")
+                            if self._cache_key:
+                                self._result_cache[self._cache_key] = WorkflowResult(
+                                    steps=steps,
+                                    is_workflow=True,
+                                    original_text=user_input
+                                )
+                            logger.info(f"⏱️ [计时] parse_all 总耗时: {time.time() - start_time:.2f}秒")
+                            return WorkflowResult(
+                                steps=steps,
+                                is_workflow=True,
+                                original_text=user_input
+                            )
                 
-                # 如果 LLM 返回了文本内容（没有 tool_calls），检查是否包含工具调用
                 if response.content and not response.tool_calls:
-                    logger.info(f"💬 LLM 返回文本内容，检查是否包含工具调用")
+                    logger.info(f"💬 LLM 返回文本内容，解析工具调用")
+                    logger.info(f"💬 LLM 返回的文本: {response.content[:500]}...")
                     
-                    # 检查文本中是否包含工具调用
-                    tool_call_pattern = r'(\w+)\((.*?)\)'
-                    match = re.match(tool_call_pattern, response.content.strip())
+                    all_tool_calls = self._parse_tool_calls_from_text(response.content)
                     
-                    if match:
-                        tool_name = match.group(1)
-                        params_str = match.group(2)
-                        
-                        logger.info(f"🔧 检测到文本中的工具调用: {tool_name}")
-                        
-                        # 解析参数
-                        params = {}
-                        if params_str:
-                            param_pattern = r'(\w+)="([^"]*)"'
-                            for param_match in re.finditer(param_pattern, params_str):
-                                param_name = param_match.group(1)
-                                param_value = param_match.group(2)
-                                params[param_name] = param_value
-                                logger.debug(f"   解析参数: {param_name}={param_value}")
-                        
-                        # 从工具注册表获取对应的智能体
+                    logger.info(f"💬 从文本中解析出 {len(all_tool_calls)} 个工具调用: {[tc[0] for tc in all_tool_calls]}")
+                    
+                    if len(all_tool_calls) == 0:
+                        logger.info(f"💬 LLM 直接返回答案，不需要工具")
+                        logger.info(f"⏱️ [计时] parse_all 总耗时: {time.time() - start_time:.2f}秒")
+                        return ToolCallResult(
+                            tool_name="general",
+                            agent_name="master",
+                            arguments={"message": user_input, "answer": response.content},
+                            answer=response.content
+                        )
+                    
+                    if len(all_tool_calls) == 1:
+                        tool_name, params = all_tool_calls[0]
                         tool = self.registry.get_tool(tool_name)
-                        
                         if tool:
-                            logger.info(f"🎯 工具调用: {tool_name} -> {tool.agent_name}")
+                            params["original_text"] = user_input
                             result = ToolCallResult(
                                 tool_name=tool_name,
                                 arguments=params,
                                 agent_name=tool.agent_name,
-                                need_history=False,
-                                history_query=None
+                                need_history=False
                             )
-                            # 缓存结果
                             if self._cache_key:
                                 self._result_cache[self._cache_key] = result
                             logger.info(f"⏱️ [计时] parse_all 总耗时: {time.time() - start_time:.2f}秒")
                             return result
-                        else:
-                            logger.warning(f"⚠️ 未找到工具: {tool_name}")
+                    else:
+                        steps = []
+                        for tool_name, params in all_tool_calls:
+                            tool = self.registry.get_tool(tool_name)
+                            if tool:
+                                params["original_text"] = user_input
+                                steps.append(ToolCallResult(
+                                    tool_name=tool_name,
+                                    arguments=params,
+                                    agent_name=tool.agent_name,
+                                    need_history=False
+                                ))
+                        
+                        if steps:
+                            logger.info(f"✅ 从文本解析出多工具调用: {[s.tool_name for s in steps]}")
+                            if self._cache_key:
+                                self._result_cache[self._cache_key] = WorkflowResult(
+                                    steps=steps,
+                                    is_workflow=True,
+                                    original_text=user_input
+                                )
+                            logger.info(f"⏱️ [计时] parse_all 总耗时: {time.time() - start_time:.2f}秒")
+                            return WorkflowResult(
+                                steps=steps,
+                                is_workflow=True,
+                                original_text=user_input
+                            )
                 
                 logger.info(f"⏱️ [计时] parse_all 总耗时: {time.time() - start_time:.2f}秒")
                 return None
@@ -597,6 +741,7 @@ class ToolBasedIntentParser:
             # 如果 LLM 返回了文本内容（没有 tool_calls），检查是否包含工具调用
             if response.content and not response.tool_calls:
                 logger.info(f"💬 LLM 返回文本内容，检查是否包含工具调用")
+                logger.info(f"💬 LLM 返回的文本: {response.content[:500]}...")
                 
                 # 检查文本中是否包含工具调用
                 tool_call_pattern = r'(\w+)\((.*?)\)'
@@ -607,6 +752,7 @@ class ToolBasedIntentParser:
                     params_str = match.group(2)
                     
                     logger.info(f"🔧 检测到文本中的工具调用: {tool_name}")
+                    logger.info(f"🔧 参数字符串: {params_str}")
                     
                     # 解析参数
                     params = {}
@@ -617,6 +763,8 @@ class ToolBasedIntentParser:
                             param_value = param_match.group(2)
                             params[param_name] = param_value
                             logger.debug(f"   解析参数: {param_name}={param_value}")
+                    
+                    logger.info(f"🔧 解析后的参数: {params}")
                     
                     # 从工具注册表获取对应的智能体
                     tool = self.registry.get_tool(tool_name)
@@ -764,6 +912,10 @@ class ToolBasedIntentParser:
     def _check_exact_match(self, user_input: str) -> Optional[Dict[str, Any]]:
         """检查用户输入是否完全匹配某个工具的别名（必须是唯一的）
         
+        支持两种模式：
+        1. 完全匹配：用户输入完全等于别名
+        2. 前缀匹配：用户输入以别名开头，后面跟着参数
+        
         Args:
             user_input: 用户输入
             
@@ -777,6 +929,7 @@ class ToolBasedIntentParser:
             matched_tools = []
             matched_alias = None
             matched_params = {}
+            extra_param = None
             
             # 遍历所有工具，检查是否有完全匹配的别名
             for tool in self.registry.get_all_tools():
@@ -787,12 +940,22 @@ class ToolBasedIntentParser:
                 
                 # 检查工具别名是否匹配
                 for alias in tool.aliases:
-                    if alias.lower() == user_input_lower:
+                    alias_lower = alias.lower()
+                    # 完全匹配
+                    if alias_lower == user_input_lower:
                         matched_tools.append(tool)
                         matched_alias = alias
-                        # 获取该别名对应的参数
                         if tool.alias_params and alias in tool.alias_params:
                             matched_params = tool.alias_params[alias]
+                        break
+                    # 前缀匹配：用户输入以别名开头，后面跟着空格和参数
+                    elif user_input_lower.startswith(alias_lower + " ") or user_input_lower.startswith(alias_lower + "　"):
+                        matched_tools.append(tool)
+                        matched_alias = alias
+                        if tool.alias_params and alias in tool.alias_params:
+                            matched_params = tool.alias_params[alias].copy()
+                        # 提取别名后面的内容作为参数
+                        extra_param = user_input[len(alias):].strip()
                         break
             
             # 如果没有匹配的工具，返回 None
@@ -807,6 +970,29 @@ class ToolBasedIntentParser:
             # 只有一个匹配的工具，返回结果
             tool = matched_tools[0]
             logger.info(f"✅ 完全匹配唯一工具: {user_input} -> {tool.agent_name}.{tool.name}")
+            
+            # 如果有额外参数，根据工具的参数定义智能匹配
+            if extra_param:
+                # 获取工具的参数定义
+                tool_params = tool.parameters.get("properties", {}) if tool.parameters else {}
+                
+                if tool_params:
+                    # 优先查找名为 app_name 或 name 的参数
+                    param_name = None
+                    for key in ["app_name", "name", "query", "keyword", "text", "file_path", "device", "path"]:
+                        if key in tool_params:
+                            param_name = key
+                            break
+                    
+                    # 如果没有找到常用参数名，使用第一个参数
+                    if not param_name and tool_params:
+                        param_name = list(tool_params.keys())[0]
+                    
+                    if param_name:
+                        matched_params[param_name] = extra_param
+                
+                matched_params["original_text"] = user_input
+            
             return {
                 "tool_name": tool.name,
                 "arguments": matched_params,
@@ -873,6 +1059,40 @@ class ToolBasedIntentParser:
         logger.debug(f"   预筛选结果: {[t.name for t in matched_tools]}")
         return matched_tools if matched_tools else None
     
+    def _parse_tool_calls_from_text(self, text: str) -> List[Tuple[str, Dict[str, str]]]:
+        """从文本中解析工具调用，支持多工具调用
+        
+        Args:
+            text: LLM返回的文本内容
+            
+        Returns:
+            List of (tool_name, params) tuples
+        """
+        results = []
+        
+        # 匹配工具调用格式: tool_name(param1="value1", param2="value2")
+        # 支持多个工具调用用逗号分隔
+        tool_call_pattern = r'(\w+)\(([^)]*)\)'
+        
+        for match in re.finditer(tool_call_pattern, text):
+            tool_name = match.group(1)
+            params_str = match.group(2)
+            
+            # 解析参数
+            params = {}
+            if params_str.strip():
+                # 匹配 key="value" 格式的参数
+                param_pattern = r'(\w+)="([^"]*)"'
+                for param_match in re.finditer(param_pattern, params_str):
+                    param_name = param_match.group(1)
+                    param_value = param_match.group(2)
+                    params[param_name] = param_value
+            
+            results.append((tool_name, params))
+            logger.debug(f"   解析工具调用: {tool_name}({params})")
+        
+        return results
+    
     def _analyze_operations(self, user_input: str) -> str:
         """分析用户输入中的操作关键词"""
         user_input_lower = user_input.lower()
@@ -907,6 +1127,6 @@ async def parse_intent_with_tools(user_input: str, context: Dict[str, Any] = Non
     return await parser.parse(user_input, context)
 
 
-async def parse_intent_with_tools_all(user_input: str, context: Dict[str, Any] = None):
+async def parse_intent_with_tools_all(user_input: str, context: Dict[str, Any] = None, master=None):
     parser = ToolBasedIntentParser()
-    return await parser.parse_all(user_input, context)
+    return await parser.parse_all(user_input, context, master)

@@ -295,6 +295,8 @@ class CrawlerAgent(BaseAgent):
             return await self._batch_scrape(params)
         elif task_type == "file_download":
             return await self._download_video(params)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return f"❌ 不支持的爬虫任务类型: {task_type}"
     
@@ -1034,7 +1036,15 @@ class CrawlerAgent(BaseAgent):
     
     async def _handle_general(self, params: Dict) -> str:
         """处理通用请求"""
-        original_text = params.get("original_text", "")
+        # 获取原始文本，支持多种参数名
+        original_text = params.get("original_text", "") or params.get("text", "") or params.get("query", "") or params.get("keyword", "")
+        
+        if not original_text:
+            return "❌ 请提供搜索关键词或操作指令"
+        
+        # 更新 params，确保后续方法可以获取到 query
+        if "query" not in params and "keyword" not in params:
+            params["query"] = original_text
         
         if "页面链接" in original_text or "提取链接" in original_text:
             return await self._extract_page_links(params)
@@ -1045,6 +1055,7 @@ class CrawlerAgent(BaseAgent):
         elif "抓取" in original_text or "爬取" in original_text:
             return await self._crawl_webpage(params)
         else:
+            # 默认进行网络搜索
             return await self._web_search(params)
     
     async def _web_search(self, params: Dict) -> str:
@@ -2461,3 +2472,35 @@ class CrawlerAgent(BaseAgent):
             "failed_tasks": sum(1 for t in self.tasks.values() if t.status == "failed"),
         })
         return status
+
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 爬虫智能体
+
+### 功能说明
+爬虫智能体专门负责网络爬虫任务，可以搜索网页、抓取内容、下载资源等。
+
+### 支持的操作
+- **网页搜索**：搜索互联网上的信息
+- **抓取链接**：从网页中提取链接
+- **下载资源**：下载视频、图片等文件
+- **API数据获取**：调用API获取数据
+
+### 使用示例
+- "搜索 Python 教程" - 搜索相关网页
+- "搜索新闻 人工智能" - 搜索新闻资讯
+- "百度一下 天气" - 使用百度搜索
+- "帮我搜一下 菜谱" - 搜索相关信息
+- "抓取链接 https://example.com" - 抓取网页中的所有链接
+- "下载视频 [视频链接]" - 下载视频文件
+
+### 支持的搜索引擎
+- 百度
+- 谷歌
+- 必应
+- 搜狗
+
+### 注意事项
+- 部分网站可能需要等待加载
+- 下载大文件时请耐心等待
+- 请遵守网站的使用条款"""

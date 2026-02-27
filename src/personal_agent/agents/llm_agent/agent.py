@@ -61,6 +61,8 @@ class LLMAgent(BaseAgent):
             return await self._chat(params)
         elif task_type == "clear_history":
             return await self._clear_history(params)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return await self._chat(params)
     

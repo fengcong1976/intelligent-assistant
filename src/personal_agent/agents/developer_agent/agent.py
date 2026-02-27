@@ -261,6 +261,8 @@ class {agent_class}(BaseAgent):
             return await self._install_deps_task(params)
         elif task_type == "reload_agents":
             return await self._reload_agents(params)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return f"❌ 不支持的开发任务: {task_type}"
 
@@ -941,6 +943,8 @@ class {agent_class}(BaseAgent):
             cmd = f"git checkout -b {branch}"
         elif action in git_commands:
             cmd = git_commands[action]
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return f"❌ 不支持的 Git 操作: {action}"
         
@@ -2121,3 +2125,25 @@ X/10"""
         results.append("✅ 完整开发流程完成!")
         
         return "\n".join(results)
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 开发智能体
+
+### 功能说明
+开发智能体可以帮助进行代码开发、智能体创建等开发任务。
+
+### 支持的操作
+- **创建智能体**：创建新的智能体
+- **代码生成**：生成代码片段
+- **代码审查**：审查代码质量
+- **执行命令**：执行CLI命令
+
+### 使用示例
+- "创建一个新的智能体" - 创建智能体
+- "生成Python代码" - 生成代码
+- "执行git命令" - 执行命令
+
+### 注意事项
+- 需要谨慎执行命令
+- 代码生成后需要检查
+- 智能体创建需要遵循规范"""

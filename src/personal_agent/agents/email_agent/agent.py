@@ -8,6 +8,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
+from email.policy import default as default_policy
 from typing import Any, Dict, Optional, List
 from pathlib import Path
 from loguru import logger
@@ -123,7 +124,8 @@ class EmailAgent(BaseAgent):
         
         elif task_type == "general":
             return await self._handle_general(params)
-
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return f"❌ 不支持的邮件操作: {task_type}"
     
@@ -350,7 +352,11 @@ class EmailAgent(BaseAgent):
         if not attachments:
             logger.warning(f"⚠️ 没有有效附件，跳过附件发送")
         
-        if not to_email:
+        if not to_email or "@" not in str(to_email):
+            if to_email and "@" not in str(to_email):
+                recipient_name = recipient_name or to_email
+                logger.info(f"📧 收件人不是邮箱地址，尝试查找联系人: {recipient_name}")
+            
             if recipient_name:
                 if recipient_name in ["我", "自己", "本人", "我的邮箱"]:
                     user_email = settings.user.email or settings.agent.email
@@ -367,7 +373,7 @@ class EmailAgent(BaseAgent):
                     else:
                         return f"❌ 找不到联系人「{recipient_name}」的邮箱地址，请先添加联系人信息"
             
-            if not to_email:
+            if not to_email or "@" not in str(to_email):
                 user_email = settings.user.email or settings.agent.email
                 if user_email:
                     to_email = user_email
@@ -458,14 +464,36 @@ class EmailAgent(BaseAgent):
         to_email = params.get("to")
         subject = params.get("subject")
         content = params.get("content")
+        recipient_name = params.get("recipient_name") or to_email
         
-        if not to_email:
-            user_email = settings.user.email or settings.agent.email
-            if user_email:
-                to_email = user_email
-                logger.info(f"使用用户默认邮箱: {to_email}")
-            else:
-                return "❌ 无法确定收件人邮箱地址"
+        logger.info(f"📧 _handle_send_with_attachment 参数: to={to_email}, recipient_name={recipient_name}")
+        
+        if not to_email or "@" not in str(to_email):
+            if recipient_name:
+                if recipient_name in ["我", "自己", "本人", "我的邮箱"]:
+                    user_email = settings.user.email or settings.agent.email
+                    if user_email:
+                        to_email = user_email
+                        logger.info(f"📧 收件人是用户自己，使用默认邮箱: {to_email}")
+                    else:
+                        return "❌ 请先在设置中配置您的邮箱地址"
+                else:
+                    contact_info = await self._get_contact_info(recipient_name)
+                    if contact_info and contact_info.get("email"):
+                        to_email = contact_info["email"]
+                        logger.info(f"📧 找到联系人邮箱: {recipient_name} -> {to_email}")
+                    else:
+                        return f"❌ 找不到联系人「{recipient_name}」的邮箱地址，请先添加联系人信息"
+            
+            if not to_email or "@" not in str(to_email):
+                user_email = settings.user.email or settings.agent.email
+                if user_email:
+                    to_email = user_email
+                    logger.info(f"📧 使用用户默认邮箱: {to_email}")
+                else:
+                    return "❌ 无法确定收件人邮箱地址"
+        
+        logger.info(f"📧 最终收件人地址: {to_email}")
         
         attachments = []
         if attachment:
@@ -828,16 +856,28 @@ class EmailAgent(BaseAgent):
     ) -> Dict:
         """实际发送邮件（支持多收件人，用逗号分隔）"""
         try:
-            from email.header import Header
             
             recipients = [addr.strip() for addr in to.split(",") if addr.strip()]
             if not recipients:
                 return {"success": False, "error": "没有有效的收件人"}
             
+            valid_recipients = []
+            for addr in recipients:
+                if "@" in addr and "." in addr:
+                    valid_recipients.append(addr)
+                else:
+                    logger.warning(f"⚠️ 无效的邮箱地址: {addr}")
+            
+            if not valid_recipients:
+                return {"success": False, "error": f"没有有效的邮箱地址，收件人: {recipients}"}
+            
+            recipients = valid_recipients
+            logger.info(f"📧 有效收件人: {recipients}")
+            
             msg = MIMEMultipart()
             msg["From"] = smtp_config["user"]
             msg["To"] = ", ".join(recipients)
-            msg["Subject"] = Header(subject, "utf-8")
+            msg["Subject"] = subject
             
             msg.attach(MIMEText(content, "plain", "utf-8"))
             
@@ -878,18 +918,20 @@ class EmailAgent(BaseAgent):
             import ssl
             context = ssl.create_default_context()
             
-            email_bytes = msg.as_bytes()
+            email_bytes = msg.as_bytes(policy=default_policy)
             logger.info(f"📧 邮件总大小: {len(email_bytes)} bytes")
             
             with smtplib.SMTP_SSL(smtp_config["host"], smtp_config["port"], context=context) as server:
                 server.login(smtp_config["user"], smtp_config["password"])
-                server.sendmail(smtp_config["user"], recipients, msg.as_bytes())
+                server.sendmail(smtp_config["user"], recipients, email_bytes)
             
             logger.info(f"📤 邮件发送成功: {', '.join(recipients)}")
             return {"success": True, "recipients": recipients}
             
         except Exception as e:
+            import traceback
             logger.error(f"邮件发送失败: {e}")
+            logger.error(traceback.format_exc())
             return {"success": False, "error": str(e)}
 
     async def _handle_receive_email(self, params: Dict) -> str:
@@ -1147,3 +1189,27 @@ class EmailAgent(BaseAgent):
             "received_count": self.received_count
         })
         return status
+
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 邮件智能体
+
+### 功能说明
+邮件智能体可以发送和接收电子邮件，支持自动生成邮件内容，支持发送附件。
+
+### 支持的操作
+- **发送邮件**：发送邮件给指定收件人
+- **接收邮件**：检查新邮件
+- **发送附件**：发送带有附件的邮件
+- **邮件管理**：管理邮件收发记录
+
+### 使用示例
+- "给张三发邮件" - 发送邮件给张三
+- "发送邮件给李四，内容是..." - 发送指定内容的邮件
+- "查邮件" - 检查新邮件
+- "把文件发给王五" - 发送带附件的邮件
+
+### 注意事项
+- 需要配置邮件服务器信息
+- 发送邮件前请确保收件人信息正确
+- 大附件可能需要较长时间发送"""

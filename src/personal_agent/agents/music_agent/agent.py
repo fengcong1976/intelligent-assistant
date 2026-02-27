@@ -70,6 +70,14 @@ class MusicAgent(BaseAgent):
         "重新扫描": ("scan_library", {}),
         "刷新音乐库": ("scan_library", {}),
         "更新音乐库": ("scan_library", {}),
+        "循环播放": ("mode", {"mode": "list_loop"}),
+        "列表循环": ("mode", {"mode": "list_loop"}),
+        "单曲循环": ("mode", {"mode": "single_loop"}),
+        "随机播放": ("mode", {"mode": "random"}),
+        "顺序播放": ("mode", {"mode": "sequence"}),
+        "切换播放模式": ("mode", {}),
+        "切换循环模式": ("mode", {}),
+        "播放模式": ("mode", {}),
     }
 
     def __init__(self):
@@ -149,6 +157,34 @@ class MusicAgent(BaseAgent):
             parameters={
                 "type": "object",
                 "properties": {},
+                "required": []
+            },
+            category="music"
+        )
+        
+        self.register_capability(
+            capability="set_play_mode",
+            description="设置播放模式。支持顺序播放、随机播放、单曲循环、列表循环。当用户要求切换播放模式、循环模式时必须调用此工具。",
+            aliases=[
+                "循环播放", "列表循环", "单曲循环", "随机播放", "顺序播放",
+                "切换播放模式", "切换循环模式", "播放模式"
+            ],
+            alias_params={
+                "循环播放": {"mode": "list_loop"},
+                "列表循环": {"mode": "list_loop"},
+                "单曲循环": {"mode": "single_loop"},
+                "随机播放": {"mode": "random"},
+                "顺序播放": {"mode": "sequence"}
+            },
+            parameters={
+                "type": "object",
+                "properties": {
+                    "mode": {
+                        "type": "string",
+                        "enum": ["sequence", "random", "single_loop", "list_loop"],
+                        "description": "播放模式：sequence(顺序播放)、random(随机播放)、single_loop(单曲循环)、list_loop(列表循环)"
+                    }
+                },
                 "required": []
             },
             category="music"
@@ -256,6 +292,9 @@ class MusicAgent(BaseAgent):
         elif task_type == "general":
             text = params.get("text", params.get("original_text", "")).lower()
             return await self._handle_general(text, params)
+        elif task_type == "agent_help":
+            # 返回帮助信息
+            return self._get_help_info()
         elif task_type == "stop":
             return await self._handle_stop(params)
         elif task_type == "pause":
@@ -277,6 +316,8 @@ class MusicAgent(BaseAgent):
         elif task_type == "volume_down":
             return await self._handle_volume_down(params)
         elif task_type == "mode":
+            return await self._handle_mode(params)
+        elif task_type == "set_play_mode":
             return await self._handle_mode(params)
         elif task_type == "status":
             return await self._handle_status(params)
@@ -329,10 +370,54 @@ class MusicAgent(BaseAgent):
         if any(kw in text_lower for kw in play_keywords):
             return await self._handle_play(params)
         
+        volume_keywords = ["声音", "音量", "大声", "小声", "响一点", "轻一点", "调大", "调小", "增大", "减小"]
+        if any(kw in text_lower for kw in volume_keywords):
+            import re
+            volume_match = re.search(r'(\d+)%', text_lower)
+            if volume_match:
+                volume_value = int(volume_match.group(1)) / 100.0
+                player = self._get_player()
+                player.set_volume(volume_value)
+                return f"🔊 音量设置为: {int(volume_value * 100)}%"
+            if "大" in text_lower or "高" in text_lower or "响" in text_lower or "增" in text_lower or "大" in text_lower:
+                return await self._handle_volume_up(params)
+            elif "小" in text_lower or "低" in text_lower or "轻" in text_lower or "减" in text_lower:
+                return await self._handle_volume_down(params)
+        
         if "音乐" in text_lower or "歌" in text_lower:
             return await self._handle_play(params)
         
         return f"❌ 无法识别的音乐指令: {text}"
+    
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 🎵 音乐智能体
+
+### 功能说明
+音乐智能体可以播放本地音乐文件，支持多种音频格式。
+
+### 支持的操作
+- **播放控制**：播放、暂停、停止、继续播放
+- **歌曲切换**：下一首、上一首、切歌
+- **音量控制**：静音、取消静音、音量加减
+- **播放列表**：查看播放列表、搜索歌曲
+- **播放模式**：顺序播放、随机播放、单曲循环
+- **打开播放器**：打开音乐播放器窗口查看播放列表
+- **扫描音乐库**：重新扫描音乐库，更新歌曲列表
+
+### 使用示例
+- "播放音乐" - 播放音乐库中的歌曲
+- "播放周杰伦" - 搜索并播放周杰伦的歌曲
+- "暂停" - 暂停当前播放
+- "下一首" - 播放下一首歌
+- "声音大一点" - 增加音量
+- "静音" - 静音
+- "随机播放" - 设置随机播放模式
+- "打开音乐播放器" - 打开播放器窗口查看播放列表
+- "扫描音乐" - 重新扫描音乐库更新歌曲列表
+
+### 支持的音频格式
+MP3, WAV, FLAC, M4A, OGG, WMA, NCM（网易云音乐加密格式）"""
 
     async def _handle_search(self, params: Dict) -> str:
         query = params.get("query", params.get("original_text", "")).lower()

@@ -134,6 +134,8 @@ class MasterAgent(BaseAgent):
         self.register_capability("task_dispatch", "任务调度")
         self.register_capability("agent_management", "智能体管理")
         self.register_capability("result_aggregation", "结果聚合")
+        self.register_capability("agent_help", "显示智能体帮助信息", 
+                                aliases=["/？", "/?", "?", "？", "help", "帮助"])
 
         self.sub_agents: Dict[str, BaseAgent] = {}
         self.task_agent_map: Dict[str, str] = {}
@@ -448,11 +450,19 @@ class MasterAgent(BaseAgent):
         if agent_hint.endswith("智能体"):
             base_name = agent_hint[:-3]
             if base_name.lower() in agent_aliases:
+                # 检查 query 是否是帮助请求
+                if query and query.strip().lower() in ['/?', '/？', '?', '？', 'help', '帮助']:
+                    # 返回特殊标记，表示需要显示帮助信息
+                    return (agent_aliases[base_name.lower()], f"__HELP__:{query.strip()}")
                 return (agent_aliases[base_name.lower()], query)
             return None
         
         for alias, agent_name in agent_aliases.items():
             if agent_hint_lower == alias.lower() or agent_hint_lower == alias.lower() + "智能体":
+                # 检查 query 是否是帮助请求
+                if query and query.strip().lower() in ['/?', '/？', '?', '？', 'help', '帮助']:
+                    # 返回特殊标记，表示需要显示帮助信息
+                    return (agent_name, f"__HELP__:{query.strip()}")
                 return (agent_name, query)
         
         return None
@@ -532,17 +542,34 @@ class MasterAgent(BaseAgent):
             if direct_route:
                 agent_name, query = direct_route
                 logger.info(f"🎯 @直接路由: {agent_name} <- '{query}'")
-                task = Task(
-                    type="general",
-                    content=request,
-                    params={"text": query, "_force_agent": agent_name},
-                    priority=7
-                )
+                
+                # 检查是否是帮助请求
+                if query.startswith("__HELP__:"):
+                    help_query = query[len("__HELP__:"):].strip()
+                    logger.info(f"💡 检测到帮助请求: {help_query}")
+                    # 返回特殊标记，表示需要显示帮助信息
+                    task = Task(
+                        type="agent_help",
+                        content=request,
+                        params={"agent_name": agent_name, "original_text": help_query},
+                        priority=7
+                    )
+                else:
+                    task = Task(
+                        type="general",
+                        content=request,
+                        params={"text": query, "_force_agent": agent_name},
+                        priority=7
+                    )
                 tasks = [task]
                 completed_tasks = await self._dispatch_tasks(tasks)
                 if completed_tasks and completed_tasks[0].result:
                     logger.info(f"⏱️ [计时] process_user_request 总耗时: {time.time() - total_start:.2f}秒")
-                    return str(completed_tasks[0].result)
+                    from ..channels.base import OutgoingMessage
+                    return OutgoingMessage(
+                        content=str(completed_tasks[0].result),
+                        metadata={"skip_auto_speak": True}
+                    )
             else:
                 logger.info(f"🎯 @智能体未匹配，交给 LLM 解析: {request}")
                 result = await self._call_llm_for_general(request, context)
@@ -890,7 +917,7 @@ class MasterAgent(BaseAgent):
         context_for_parser = {"files": [file_path] if file_path else []}
         logger.info(f"⏱️ [计时] 开始工具选择机制")
         t1 = time.time()
-        tool_result = await parse_intent_with_tools_all(request, context_for_parser)
+        tool_result = await parse_intent_with_tools_all(request, context_for_parser, self)
         logger.info(f"⏱️ [计时] 工具选择机制完成，耗时: {time.time() - t1:.2f}秒")
         
         if tool_result:
@@ -954,6 +981,22 @@ class MasterAgent(BaseAgent):
             
             logger.info(f"🎯 工具选择机制成功: {tool_result.tool_name} -> {tool_result.agent_name}")
             
+            # 如果是确认操作，直接执行待处理操作
+            if hasattr(tool_result, 'answer') and tool_result.answer == "CONFIRM":
+                logger.info(f"✅ 用户确认执行待处理操作")
+                if self._pending_action:
+                    pending = self._pending_action
+                    self._pending_action = None
+                    result = await self._execute_pending_action(pending, request)
+                    return {
+                        "type": "system_control",
+                        "params": {
+                            "original_text": request,
+                            "answer": result
+                        },
+                        "confidence": 0.95
+                    }
+            
             # 如果工具选择返回了答案（不需要工具），直接使用这个答案
             if hasattr(tool_result, 'answer') and tool_result.answer:
                 logger.info(f"💬 工具选择已返回答案，直接使用，不再调用 LLM")
@@ -984,6 +1027,14 @@ class MasterAgent(BaseAgent):
                 )
                 
                 logger.info(f"⚡ 快速跳转工具执行完成: {result[:100] if len(result) > 100 else result}")
+                
+                # 检查是否需要保存待确认操作
+                if result == "⚠️ 清空回收站将永久删除所有文件，无法恢复！\n\n确认要清空回收站吗？请回复\"确认\"或\"取消\"。":
+                    self._pending_action = {
+                        "action": "empty_recycle",
+                        "params": {}
+                    }
+                    logger.info(f"📌 保存待确认操作: {self._pending_action}")
                 
                 return {
                     "type": tool_result.tool_name,
@@ -1772,7 +1823,7 @@ class MasterAgent(BaseAgent):
             )
             tasks.append(task)
 
-        elif intent_type == "tts" or intent_type == "text_to_speech":
+        elif intent_type == "tts" or intent_type == "text_to_speech" or intent_type == "tts_speak":
             action = params.get("action", "synthesize")
             
             task = Task(
@@ -2652,8 +2703,17 @@ class MasterAgent(BaseAgent):
             force_agent = task.params["_force_agent"]
             logger.info(f"🎯 强制使用智能体: {force_agent}")
             return await self._get_or_create_agent(force_agent)
-
+        
         task_type = task.type
+        
+        if task_type == "agent_help":
+            agent_name = task.params.get("agent_name", "")
+            if agent_name:
+                logger.info(f"📖 请求智能体帮助: {agent_name}")
+                return await self._get_or_create_agent(agent_name)
+            else:
+                logger.info(f"📖 请求系统帮助")
+                return self
         
         volume_actions = ["volume", "volume_up", "volume_down", "volume_mute", "volume_unmute", "volume_set", "volume_get", "volume_control"]
         if task_type in volume_actions:
@@ -2964,6 +3024,12 @@ class MasterAgent(BaseAgent):
         """
         if task.type == "general":
             return await self._handle_general_task(task.content)
+        if task.type == "agent_help":
+            agent_name = task.params.get("agent_name", "")
+            if agent_name:
+                help_info = await self._get_agent_help_from_skill(agent_name)
+                return help_info
+            return "暂无帮助信息"
         if task.type == "create_skill":
             return await self._handle_create_skill(task.params)
         return await self.process_user_request(task.content, task.params)
@@ -3563,6 +3629,17 @@ tests/
                     if agent:
                         await agent.assign_task(task)
                         return await self._wait_for_task_completion(task)
+                elif action == "empty_recycle":
+                    task = Task(
+                        type="system_control",
+                        content=content,
+                        params={"action": "empty_recycle", "confirm": True},
+                        priority=5
+                    )
+                    agent = await self._get_or_create_agent("os_agent")
+                    if agent:
+                        await agent.assign_task(task)
+                        return await self._wait_for_task_completion(task)
                 elif action == "general":
                     return await self._execute_pending_action(pending, content)
             
@@ -3595,9 +3672,10 @@ tests/
 3. 如果历史记录中没有相关信息，告诉用户你还没有记录这个信息，并提示用户可以告诉你
 4. 如果用户的问题涉及到需要执行的操作（如添加联系人、发送邮件等），但你缺少参数，先询问用户
 5. 如果你能确定所有参数，在回复末尾添加 JSON 标记：<!-- ACTION: {{"action": "操作名", "params": {{参数}}}} -->
-6. 操作类型包括：add_contact, send_email, set_reminder 等
+6. 操作类型包括：add_contact, send_email, set_reminder, empty_recycle 等
 7. 对于 add_contact，params 包括：name（姓名）, relationship（关系）, phone, email 等
-8. 解析时间时，请使用当前日期 {current_date} 作为基准
+8. 对于 empty_recycle（清空回收站），不需要额外参数，这是一个危险操作，需要用户确认
+9. 解析时间时，请使用当前日期 {current_date} 作为基准
 
 最近对话（请从中查找用户提到的个人信息）：
 {history_text if history_text else "无历史记录"}
@@ -3653,6 +3731,33 @@ tests/
                 priority=5
             )
             agent = await self._get_or_create_agent("contact_agent")
+            if agent:
+                await agent.assign_task(task)
+                return await self._wait_for_task_completion(task)
+        
+        elif action in ("切换音频输出", "切换音频输入", "切换扬声器", "切换麦克风"):
+            device = params.get("设备名称") or params.get("device") or params.get("name", "")
+            operation = "switch_output" if action in ("切换音频输出", "切换扬声器") else "switch_input"
+            
+            task = Task(
+                type="audio_device_control",
+                content=content,
+                params={"operation": operation, "device": device},
+                priority=5
+            )
+            agent = await self._get_or_create_agent("os_agent")
+            if agent:
+                await agent.assign_task(task)
+                return await self._wait_for_task_completion(task)
+        
+        elif action == "empty_recycle":
+            task = Task(
+                type="system_control",
+                content=content,
+                params={"action": "empty_recycle", "confirm": True},
+                priority=5
+            )
+            agent = await self._get_or_create_agent("os_agent")
             if agent:
                 await agent.assign_task(task)
                 return await self._wait_for_task_completion(task)
@@ -3774,3 +3879,40 @@ tags: ["tag1", "tag2"]
         except Exception as e:
             logger.error(f"创建 Skill 失败: {e}")
             return {"success": False, "error": str(e)}
+    
+    async def _get_agent_help_from_skill(self, agent_name: str) -> str:
+        """从智能体获取帮助信息（优先从配置文件读取）"""
+        try:
+            from .agent_scanner import get_agent_scanner
+            
+            scanner = get_agent_scanner()
+            metadata = scanner.get_agent_metadata(agent_name)
+            
+            if metadata and metadata.help:
+                return metadata.help
+            
+            agent = await self._get_or_create_agent(agent_name)
+            if not agent:
+                return f"❌ 未找到智能体: {agent_name}"
+            
+            parts = []
+            agent_display_name = agent_name.replace('_agent', '').replace('_', ' ').title()
+            parts.append(f"## 🤖 {agent_display_name}智能体")
+            
+            if hasattr(agent, 'KEYWORD_MAPPINGS') and agent.KEYWORD_MAPPINGS:
+                parts.append("\n### 支持的关键词：")
+                
+                action_keywords = {}
+                for keyword, (action, params) in agent.KEYWORD_MAPPINGS.items():
+                    if action not in action_keywords:
+                        action_keywords[action] = []
+                    action_keywords[action].append(keyword)
+                
+                for action, keywords in sorted(action_keywords.items()):
+                    parts.append(f"\n**{action}**：")
+                    parts.append(f"  {', '.join(keywords)}")
+            
+            return "\n".join(parts)
+        except Exception as e:
+            logger.error(f"获取智能体帮助信息失败: {e}")
+            return f"❌ 获取帮助信息失败: {str(e)}"

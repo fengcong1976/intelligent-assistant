@@ -263,7 +263,11 @@ class MultiAgentSystem:
             if isinstance(response_content, OutgoingMessage):
                 response_content.receiver_id = incoming.sender_id
                 simple_session_manager.add_message("assistant", response_content.content)
-                self._speak_response(response_content.content)
+                
+                skip_auto_speak = response_content.metadata and response_content.metadata.get("skip_auto_speak", False)
+                if not skip_auto_speak:
+                    self._speak_response(response_content.content)
+                
                 return response_content
 
             agent_names = None

@@ -140,6 +140,8 @@ class QQBotAgent(BaseAgent):
             return await self._send_message(params)
         elif task_type == "configure_qq_bot":
             return self._configure_bot(params)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return {"success": False, "message": f"未知任务类型: {task_type}"}
 
@@ -233,6 +235,8 @@ class QQBotAgent(BaseAgent):
                               f"机器人名称: {self._bot_client.robot.name if hasattr(self._bot_client, 'robot') else '未知'}\n"
                               f"支持: 群聊@消息、私聊消息、频道消息"
                 }
+            elif task_type == "agent_help":
+                return self._get_help_info()
             else:
                 return {"success": False, "message": "QQ机器人启动失败，请检查配置"}
                 
@@ -431,6 +435,8 @@ class QQBotAgent(BaseAgent):
             elif target_type == "channel":
                 channel_id = params.get("channel_id")
                 await self._bot_client.api.post_message(channel_id=channel_id, content=content)
+            elif task_type == "agent_help":
+                return self._get_help_info()
             else:
                 return {"success": False, "message": f"不支持的目标类型: {target_type}"}
             
@@ -450,3 +456,25 @@ class QQBotAgent(BaseAgent):
         await self._stop_bot()
         await super().stop()
         logger.info("🤖 QQ机器人智能体已停止")
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## QQ机器人智能体
+
+### 功能说明
+QQ机器人智能体可以管理QQ机器人，支持启动、停止、发送消息。
+
+### 支持的操作
+- **启动机器人**：启动QQ机器人
+- **停止机器人**：停止QQ机器人
+- **发送消息**：发送QQ消息
+- **配置机器人**：配置机器人参数
+
+### 使用示例
+- "启动QQ机器人" - 启动机器人
+- "停止机器人" - 停止机器人
+- "发送QQ消息" - 发送消息
+
+### 注意事项
+- 需要配置AppID和Secret
+- 需要订阅相应的事件权限
+- 请遵守QQ平台的使用规范"""

@@ -202,6 +202,8 @@ class DownloadAgent(BaseAgent):
                 return await self._show_history()
             elif action == "clear_history":
                 return await self._clear_history()
+            elif task_type == "agent_help":
+                return self._get_help_info()
             else:
                 return f"❌ 未知的操作: {action}"
         
@@ -619,3 +621,27 @@ class DownloadAgent(BaseAgent):
             "batch_download",
             "download_management"
         ]
+
+    def _get_help_info(self) -> str:
+        """获取帮助信息"""
+        return """## 下载智能体
+
+### 功能说明
+下载智能体可以下载各种文件，支持多线程下载、断点续传。
+
+### 支持的操作
+- **下载文件**：从URL下载文件
+- **批量下载**：同时下载多个文件
+- **暂停下载**：暂停正在下载的任务
+- **恢复下载**：恢复暂停的下载
+- **取消下载**：取消下载任务
+
+### 使用示例
+- "下载 [文件链接]" - 下载指定文件
+- "批量下载这些链接" - 批量下载
+- "查看下载进度" - 查看下载状态
+
+### 注意事项
+- 支持断点续传
+- 大文件下载可能需要较长时间
+- 下载的文件会保存在下载目录"""

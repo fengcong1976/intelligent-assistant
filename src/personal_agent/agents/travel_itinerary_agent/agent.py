@@ -294,6 +294,8 @@ class TravelItineraryAgent(BaseAgent):
             return await self._handle_generate(params)
         elif task_type == "export_to_docx":
             return await self._handle_export(params)
+        elif task_type == "agent_help":
+            return self._get_help_info()
         else:
             return self.cannot_handle(f"不支持的任务类型: {task_type}")
 
