@@ -637,7 +637,10 @@ class DocumentAgent(BaseAgent):
         output_path = params.get("output", "")
         
         if not content:
-            return "❌ 请提供文档内容"
+            logger.info(f"📝 内容为空，调用LLM生成详细内容: {title}")
+            content = await self._generate_content_with_llm(title, "")
+            if not content:
+                return "❌ 无法生成文档内容"
         
         if len(content) < 100:
             logger.info(f"📝 内容较短，调用LLM生成详细内容: {title}")
