@@ -665,9 +665,6 @@ class DocumentAgent(BaseAgent):
         content = params.get("content", "")
         filename = params.get("filename", "文档.docx")
         
-        if not content:
-            return "❌ 请提供文档内容"
-        
         output_dir = self._get_documents_dir()
         output_dir.mkdir(parents=True, exist_ok=True)
         
@@ -676,6 +673,24 @@ class DocumentAgent(BaseAgent):
             output_path = output_dir / output_path.name
         
         suffix = output_path.suffix.lower()
+        title = output_path.stem
+        
+        excel_keywords = ["报表", "表格", "数据表", "信息表", "通讯录", "名单", "清单", "列表", "财务", "销售", "库存", "员工", "产品", "价格"]
+        is_excel_like = any(kw in title for kw in excel_keywords)
+        
+        if not suffix:
+            if is_excel_like:
+                suffix = ".xlsx"
+                output_path = output_path.with_suffix(suffix)
+            else:
+                suffix = ".docx"
+                output_path = output_path.with_suffix(suffix)
+        
+        if not content:
+            if suffix in [".xlsx", ".xls"]:
+                content = title
+            else:
+                content = await self._generate_content_with_llm(title, "")
         
         result = None
         if suffix in [".xlsx", ".xls"]:
@@ -685,7 +700,6 @@ class DocumentAgent(BaseAgent):
         else:
             if suffix == ".doc":
                 output_path = output_path.with_suffix(".docx")
-            title = output_path.stem
             result = await self._generate_docx(title, content, output_path)
         
         if isinstance(result, str) and "✅" in result:
