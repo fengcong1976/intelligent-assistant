@@ -1679,7 +1679,7 @@ class OSAgent(BaseAgent):
                 
                 device = target_device
             
-            ps_script = f"Import-Module AudioDeviceCmdlets -ErrorAction SilentlyContinue; $device = Get-AudioDevice -List | Where-Object {{ $_.Type -eq 'Playback' -and $_.Name -like '*{device}*' }} | Select-Object -First 1; if ($device) {{ $device | Set-AudioDevice; Write-Output $device.Name }}"
+            ps_script = f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Import-Module AudioDeviceCmdlets -ErrorAction SilentlyContinue; $device = Get-AudioDevice -List | Where-Object {{ $_.Type -eq 'Playback' -and $_.Name -like '*{device}*' }} | Select-Object -First 1; if ($device) {{ $device | Set-AudioDevice; Write-Output $device.Name }}"
             return_code, stdout, stderr = await self._run_powershell(ps_script)
             if return_code == 0 and stdout.strip():
                 return f"🎧 音频输出已切换到: {stdout.strip()}"
@@ -1709,7 +1709,7 @@ class OSAgent(BaseAgent):
                 
                 device = target_device
             
-            ps_script = f"Import-Module AudioDeviceCmdlets -ErrorAction SilentlyContinue; $device = Get-AudioDevice -List | Where-Object {{ $_.Type -eq 'Recording' -and $_.Name -like '*{device}*' }} | Select-Object -First 1; if ($device) {{ $device | Set-AudioDevice; Write-Output $device.Name }}"
+            ps_script = f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Import-Module AudioDeviceCmdlets -ErrorAction SilentlyContinue; $device = Get-AudioDevice -List | Where-Object {{ $_.Type -eq 'Recording' -and $_.Name -like '*{device}*' }} | Select-Object -First 1; if ($device) {{ $device | Set-AudioDevice; Write-Output $device.Name }}"
             return_code, stdout, stderr = await self._run_powershell(ps_script)
             if return_code == 0 and stdout.strip():
                 return f"🎤 音频输入已切换到: {stdout.strip()}"
@@ -1726,10 +1726,11 @@ class OSAgent(BaseAgent):
     async def _get_audio_devices(self, device_type: str = None) -> list:
         """获取音频设备列表"""
         if self.system == "Windows":
+            # 设置 PowerShell 输出编码为 UTF-8，避免中文乱码
             if device_type:
-                ps_script = f"Import-Module AudioDeviceCmdlets -ErrorAction SilentlyContinue; Get-AudioDevice -List | Where-Object {{ $_.Type -eq '{device_type}' }} | Select-Object Name, Default | ConvertTo-Json"
+                ps_script = f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Import-Module AudioDeviceCmdlets -ErrorAction SilentlyContinue; Get-AudioDevice -List | Where-Object {{ $_.Type -eq '{device_type}' }} | Select-Object Name, Default | ConvertTo-Json"
             else:
-                ps_script = "Import-Module AudioDeviceCmdlets -ErrorAction SilentlyContinue; Get-AudioDevice -List | Select-Object Type, Name, Default | ConvertTo-Json"
+                ps_script = "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Import-Module AudioDeviceCmdlets -ErrorAction SilentlyContinue; Get-AudioDevice -List | Select-Object Type, Name, Default | ConvertTo-Json"
             return_code, stdout, stderr = await self._run_powershell(ps_script)
             logger.info(f"🔍 音频设备查询: return_code={return_code}, stdout={stdout[:200] if stdout else 'empty'}, stderr={stderr}")
             if return_code == 0 and stdout.strip():

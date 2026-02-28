@@ -6,6 +6,7 @@ import os
 import json
 import random
 import threading
+import asyncio
 from pathlib import Path
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass, field, asdict
@@ -320,8 +321,13 @@ class MusicPlayer:
         
         return 0
 
-    def scan_music_library(self, force: bool = False) -> List[Song]:
-        """扫描音乐库"""
+    async def scan_music_library(self, force: bool = False, progress_callback=None) -> List[Song]:
+        """扫描音乐库
+        
+        Args:
+            force: 是否强制重新扫描
+            progress_callback: 进度回调函数，接收 (current, total, current_file) 参数
+        """
         if not force and self.cached_songs:
             return self.cached_songs
         
@@ -331,30 +337,68 @@ class MusicPlayer:
             logger.warning(f"音乐库目录不存在: {self.music_library}")
             return songs
         
+        # 先收集所有音频文件
+        audio_files = []
         for audio_file in self.music_library.rglob("*"):
             if audio_file.suffix.lower() in self.SUPPORTED_FORMATS:
-                try:
-                    if audio_file.suffix.lower() == '.ncm':
-                        song = Song(
-                            path=str(audio_file),
-                            title=audio_file.stem + " [NCM]",
-                            duration=0,
-                        )
-                        songs.append(song)
-                    else:
-                        duration = self._get_audio_duration(str(audio_file))
-                        song = Song(
-                            path=str(audio_file),
-                            title=audio_file.stem,
-                            duration=duration,
-                        )
-                        songs.append(song)
-                except Exception as e:
-                    logger.error(f"读取文件信息失败 {audio_file}: {e}")
+                audio_files.append(audio_file)
+        
+        total_files = len(audio_files)
+        logger.info(f"🎵 发现 {total_files} 个音频文件，开始扫描...")
+        
+        # 批量处理文件，每10个文件让出一次控制权
+        for i, audio_file in enumerate(audio_files):
+            try:
+                if audio_file.suffix.lower() == '.ncm':
+                    song = Song(
+                        path=str(audio_file),
+                        title=audio_file.stem + " [NCM]",
+                        duration=0,
+                    )
+                    songs.append(song)
+                else:
+                    # 扫描时先不获取时长，加快扫描速度
+                    # 时长可以在播放时动态获取
+                    song = Song(
+                        path=str(audio_file),
+                        title=audio_file.stem,
+                        duration=0,  # 延迟获取时长
+                    )
+                    songs.append(song)
+                
+                # 每10个文件报告一次进度
+                if progress_callback and (i + 1) % 10 == 0:
+                    await progress_callback(i + 1, total_files, audio_file.name)
+                
+                # 每50个文件让出控制权，避免阻塞
+                if (i + 1) % 50 == 0:
+                    await asyncio.sleep(0.01)
+                    
+            except Exception as e:
+                logger.error(f"读取文件信息失败 {audio_file}: {e}")
+        
+        # 最后报告一次完成
+        if progress_callback:
+            await progress_callback(total_files, total_files, "扫描完成")
         
         self.cached_songs = songs
         self._save_data()
+        logger.info(f"🎵 扫描完成，共 {len(songs)} 首歌曲")
         return songs
+    
+    def scan_music_library_sync(self, force: bool = False) -> List[Song]:
+        """同步版本的音乐库扫描（用于非异步场景）"""
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # 如果事件循环已经在运行，创建新任务
+                return asyncio.create_task(self.scan_music_library(force)).result()
+            else:
+                return loop.run_until_complete(self.scan_music_library(force))
+        except RuntimeError:
+            # 没有事件循环，创建新的
+            return asyncio.run(self.scan_music_library(force))
     
     def get_cached_songs(self) -> List[Song]:
         """获取缓存的歌曲列表"""

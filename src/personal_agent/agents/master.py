@@ -2387,42 +2387,6 @@ class MasterAgent(BaseAgent):
         }
         return task_descriptions.get(task_type, task_type)
 
-    async def _get_agent_help_from_skill(self, agent_name: str) -> str:
-        """从智能体获取帮助信息（优先从配置文件读取）"""
-        from .agent_scanner import get_agent_scanner
-        
-        scanner = get_agent_scanner()
-        metadata = scanner.get_agent_metadata(agent_name)
-        
-        if metadata and metadata.help:
-            return metadata.help
-        
-        agent = await self._get_or_create_agent(agent_name)
-        if not agent:
-            return f"❌ 未找到智能体: {agent_name}"
-        
-        parts = []
-        agent_display_name = agent_name.replace('_agent', '').replace('_', ' ').title()
-        parts.append(f"## 🤖 {agent_display_name}智能体")
-        
-        if hasattr(agent, 'KEYWORD_MAPPINGS') and agent.KEYWORD_MAPPINGS:
-            parts.append("\n### 支持的关键词：")
-            
-            action_keywords = {}
-            for keyword, (action, params) in agent.KEYWORD_MAPPINGS.items():
-                if action not in action_keywords:
-                    action_keywords[action] = []
-                action_keywords[action].append(keyword)
-            
-            for action, keywords in sorted(action_keywords.items()):
-                parts.append(f"\n**{action}**：")
-                parts.append(f"  {', '.join(keywords)}")
-        
-        if hasattr(agent, 'skill') and agent.skill and agent.skill.get('help'):
-            parts.append("\n\n" + agent.skill['help'])
-        
-        return "\n".join(parts)
-
     async def _dispatch_tasks(self, tasks: List[Task]) -> List[Task]:
         """
         分配任务给合适的智能体
@@ -3891,27 +3855,24 @@ tags: ["tag1", "tag2"]
             if metadata and metadata.help:
                 return metadata.help
             
+
             agent = await self._get_or_create_agent(agent_name)
             if not agent:
-                return f"❌ 未找到智能体: {agent_name}"
-            
+                return f"❌ 未找到智能体：{agent_name}"
+
+            # 优先使用 _get_help 或 _get_help_info 方法
+            if hasattr(agent, '_get_help_info'):
+                return agent._get_help_info()
+            elif hasattr(agent, '_get_help'):
+                return agent._get_help()
+
             parts = []
             agent_display_name = agent_name.replace('_agent', '').replace('_', ' ').title()
             parts.append(f"## 🤖 {agent_display_name}智能体")
-            
-            if hasattr(agent, 'KEYWORD_MAPPINGS') and agent.KEYWORD_MAPPINGS:
-                parts.append("\n### 支持的关键词：")
-                
-                action_keywords = {}
-                for keyword, (action, params) in agent.KEYWORD_MAPPINGS.items():
-                    if action not in action_keywords:
-                        action_keywords[action] = []
-                    action_keywords[action].append(keyword)
-                
-                for action, keywords in sorted(action_keywords.items()):
-                    parts.append(f"\n**{action}**：")
-                    parts.append(f"  {', '.join(keywords)}")
-            
+
+            if hasattr(agent, 'skill') and agent.skill and agent.skill.get('help'):
+                parts.append("\n\n" + agent.skill['help'])
+
             return "\n".join(parts)
         except Exception as e:
             logger.error(f"获取智能体帮助信息失败: {e}")

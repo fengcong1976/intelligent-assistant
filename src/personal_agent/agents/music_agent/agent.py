@@ -444,7 +444,7 @@ MP3, WAV, FLAC, M4A, OGG, WMA, NCM（网易云音乐加密格式）"""
             logger.debug(f"🎵 第一首歌曲类型: {type(songs[0])}")
         
         if not songs:
-            songs = player.scan_music_library()
+            songs = player.scan_music_library_sync()
         
         results = []
         for s in songs:
@@ -477,7 +477,7 @@ MP3, WAV, FLAC, M4A, OGG, WMA, NCM（网易云音乐加密格式）"""
 
     async def _handle_list(self, params: Dict) -> str:
         player = self._get_player()
-        songs = player.scan_music_library()
+        songs = await player.scan_music_library()
         
         if not songs:
             return "❌ 音乐库中没有找到音乐文件"
@@ -548,7 +548,7 @@ MP3, WAV, FLAC, M4A, OGG, WMA, NCM（网易云音乐加密格式）"""
         
         songs = player.get_cached_songs()
         if not songs:
-            songs = player.scan_music_library()
+            songs = player.scan_music_library_sync()
         
         logger.info(f"🎵 歌曲数量: {len(songs) if songs else 0}")
         
@@ -849,18 +849,33 @@ MP3, WAV, FLAC, M4A, OGG, WMA, NCM（网易云音乐加密格式）"""
         if songs:
             return f"🎵 音乐播放器已打开\n\n📋 播放列表共 {len(songs)} 首歌曲"
         else:
-            songs = player.scan_music_library()
+            songs = player.scan_music_library_sync()
             if songs:
                 return f"🎵 音乐播放器已打开\n\n📋 播放列表共 {len(songs)} 首歌曲"
             return "🎵 音乐播放器已打开\n\n⚠️ 音乐库暂无歌曲，请先扫描音乐库"
 
     async def _handle_scan_library(self, params: Dict) -> str:
         """重新扫描音乐库"""
+        import asyncio
         music_library = self._get_music_library()
         self._send_message_to_chat(f"🔍 正在扫描音乐库...\n\n📁 路径: {music_library}")
         
         player = self._get_player()
-        songs = player.scan_music_library(force=True)
+        
+        # 进度回调函数
+        last_progress_time = 0
+        async def progress_callback(current, total, filename):
+            nonlocal last_progress_time
+            import time
+            # 每2秒更新一次进度，避免消息过多
+            current_time = time.time()
+            if current_time - last_progress_time >= 2:
+                last_progress_time = current_time
+                progress = (current / total * 100) if total > 0 else 0
+                self._send_message_to_chat(f"🔍 扫描进度: {current}/{total} ({progress:.1f}%)\n📄 当前: {filename[:30]}...")
+        
+        # 使用异步扫描
+        songs = await player.scan_music_library(force=True, progress_callback=progress_callback)
         
         if not songs:
             return f"❌ 扫描完成，未找到音乐文件\n\n📁 音乐库路径: {music_library}\n\n请确保音乐库路径下有支持的音乐文件（MP3、WAV、FLAC、M4A、OGG、WMA、NCM）"

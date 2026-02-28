@@ -453,8 +453,11 @@ class ChatWindow:
         # 注意：Master Agent 的通知回调在 _init_multi_agent_system 中设置
 
         self.window = QMainWindow()
-        self.window.setWindowTitle("智能助理系统")
+        self.window.setWindowTitle("红灯笼智能助理")
         self.window.setMinimumSize(900, 650)
+        
+        # 设置窗口图标
+        self._set_window_icon()
         
         # 让主窗口可以访问 ChatWindow
         self.window.chat_window = self
@@ -499,6 +502,64 @@ class ChatWindow:
                     self.input_field._popup_shown = False
         
         QMainWindow.changeEvent(self.window, event)
+    
+    def _set_window_icon(self):
+        """设置窗口图标
+        
+        图标查找顺序:
+        1. 项目根目录下的 icon.ico (推荐，Windows原生支持)
+        2. 项目根目录下的 icon.png
+        3. 项目根目录下的 logo.ico
+        4. 项目根目录下的 logo.png
+        5. 使用系统默认图标
+        """
+        try:
+            from PyQt6.QtGui import QIcon, QPixmap
+            from PyQt6.QtCore import Qt
+            import os
+            
+            # 获取项目根目录 (gui.py 在 src/personal_agent/channels/ 下，需要向上4层)
+            # gui.py -> channels -> personal_agent -> src -> 项目根目录
+            current_file = os.path.abspath(__file__)
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file))))
+            
+            logger.debug(f"项目根目录: {project_root}")
+            
+            # 可能的图标文件路径（按优先级排序，ICO优先）
+            icon_files = [
+                os.path.join(project_root, 'icon.ico'),
+                os.path.join(project_root, 'icon.png'),
+                os.path.join(project_root, 'logo.ico'),
+                os.path.join(project_root, 'logo.png'),
+                os.path.join(project_root, 'assets', 'icon.ico'),
+                os.path.join(project_root, 'assets', 'icon.png'),
+                os.path.join(project_root, 'resources', 'icon.ico'),
+                os.path.join(project_root, 'resources', 'icon.png'),
+            ]
+            
+            # 查找第一个存在的图标文件
+            for icon_path in icon_files:
+                logger.debug(f"检查图标: {icon_path} - 存在: {os.path.exists(icon_path)}")
+                if os.path.exists(icon_path):
+                    # 对于PNG文件，使用QPixmap正确处理透明通道
+                    if icon_path.lower().endswith('.png'):
+                        pixmap = QPixmap(icon_path)
+                        if not pixmap.isNull():
+                            icon = QIcon(pixmap)
+                            self.window.setWindowIcon(icon)
+                            logger.info(f"窗口图标已设置(PNG): {icon_path}")
+                            return
+                    else:
+                        # ICO文件直接使用
+                        icon = QIcon(icon_path)
+                        self.window.setWindowIcon(icon)
+                        logger.info(f"窗口图标已设置(ICO): {icon_path}")
+                        return
+            
+            logger.debug("未找到自定义窗口图标，使用系统默认图标")
+            
+        except Exception as e:
+            logger.warning(f"设置窗口图标失败: {e}")
     
     def _on_window_resize(self, event):
         """Handle window resize event - update message item sizes"""
@@ -1328,9 +1389,6 @@ class ChatWindow:
         skip_auto_speak = metadata and metadata.get('skip_auto_speak', False)
         msg_widget._skip_auto_speak = skip_auto_speak
         
-        from loguru import logger
-        logger.info(f"🔍 _append_message_without_save: role={role}, metadata={metadata}, skip_auto_speak={skip_auto_speak}")
-        
         outer_layout = self.QVBoxLayout(msg_widget)
         outer_layout.setContentsMargins(24, 8, 24, 8)
         outer_layout.setSpacing(4)
@@ -1437,8 +1495,6 @@ class ChatWindow:
             
             skip_auto_speak_check = metadata and metadata.get('skip_auto_speak', False)
             from ..tts import get_tts_manager
-            from loguru import logger
-            logger.info(f"🔍 _append_message_without_save (play button): metadata={metadata}, skip_auto_speak_check={skip_auto_speak_check}, tts_enabled={get_tts_manager().is_enabled()}")
             
             tts = get_tts_manager()
             if tts.is_enabled() and not skip_auto_speak_check:
@@ -1482,8 +1538,7 @@ class ChatWindow:
                 msg_id = id(msg_widget)
                 play_btn.clicked.connect(lambda checked, mid=msg_id, txt=content, btn=play_btn: self._toggle_tts(mid, txt, btn))
                 bubble_layout.addWidget(play_btn)
-                logger.info(f"🔍 _append_message_without_save: play button hidden (skip_auto_speak_check={skip_auto_speak_check})")
-            
+
             content_layout.addWidget(bubble_row)
             
             time_label = self.QLabel(timestamp)
@@ -2612,23 +2667,14 @@ class ChatWindow:
             content = resp
             metadata = None
             
-            from loguru import logger
-            logger.info(f"🔍 on_response: resp type={type(resp)}, has_metadata={hasattr(resp, 'metadata')}")
-            
             if hasattr(resp, 'metadata'):
                 metadata = resp.metadata
                 if metadata:
                     skip_auto_speak = metadata.get('skip_auto_speak', False)
-                    logger.info(f"🔍 on_response: skip_auto_speak={skip_auto_speak}, metadata={metadata}")
-                else:
-                    logger.info(f"🔍 on_response: metadata is None or empty")
-            else:
-                logger.info(f"🔍 on_response: resp has no metadata attribute")
             
             if hasattr(resp, 'content'):
                 content = resp.content
             
-            logger.info(f"🔍 on_response: calling append_message with metadata={metadata}")
             if not skip_auto_speak:
                 self.signal_helper.emit_auto_speak(content)
             self.append_message("agent", content, metadata)

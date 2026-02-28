@@ -5,16 +5,23 @@
   "description": "语音合成智能体 - 将文本转换为语音音频文件",
   "version": "1.0.0",
   "priority": 1,
-  "capabilities": ["text_to_speech", "voice_synthesis", "audio_generation"],
+  "capabilities": [
+    "text_to_speech",
+    "voice_synthesis",
+    "audio_generation"
+  ],
   "actions": {
     "synthesize": {
       "description": "将文本合成为语音",
-      "params": ["text", "voice", "format"]
+      "params": [
+        "text",
+        "voice",
+        "format"
+      ]
     },
     "list_voices": {
       "description": "列出可用的音色",
       "params": []
     }
-  },
-  "help": "## 🎙️ 语音合成智能体\n\n### 功能说明\n语音合成智能体可以将文本转换为语音音频文件，支持多种音色和格式。\n\n### 支持的操作\n- **语音合成**：将文字转换为语音\n- **音色选择**：选择不同的声音风格\n- **格式输出**：支持MP3、WAV等格式\n\n### 使用示例\n- \"把这段话转成语音\" - 文字转语音\n- \"朗读这篇文章\" - 朗读文本\n- \"用女声合成\" - 指定音色\n- \"有哪些音色\" - 查看可用音色\n\n### 可用音色\n- 龙悦v3 (活力女声)\n- 龙飞v3 (磁性男声)\n- 龙硕v3 (沉稳男声)\n- 龙盈京v3 (京味女声)\n- 龙杰力豆v3 (童声)"
+  }
 }

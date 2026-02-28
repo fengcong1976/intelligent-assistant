@@ -79,15 +79,23 @@ class NCMDecryptor:
                 output_path = self.cache_dir / output_name
                 
                 with open(output_path, 'wb') as out:
+                    # RC4 密钥流生成状态
+                    i = 0
+                    j = 0
+                    
                     while True:
                         chunk = f.read(0x8000)
                         if not chunk:
                             break
                         
                         chunk = bytearray(chunk)
-                        for i in range(len(chunk)):
-                            j = (i + 1) & 0xff
-                            chunk[i] ^= key_box[(key_box[j] + key_box[(key_box[j] + j) & 0xff]) & 0xff]
+                        for k in range(len(chunk)):
+                            # RC4 密钥流生成
+                            i = (i + 1) & 0xff
+                            j = (j + key_box[i]) & 0xff
+                            key_box[i], key_box[j] = key_box[j], key_box[i]
+                            keystream_byte = key_box[(key_box[i] + key_box[j]) & 0xff]
+                            chunk[k] ^= keystream_byte
                         
                         out.write(chunk)
                 
