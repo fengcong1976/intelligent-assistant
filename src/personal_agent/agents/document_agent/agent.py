@@ -587,17 +587,38 @@ class DocumentAgent(BaseAgent):
         if not llm:
             return ""
         
-        prompt = f"""请为以下主题生成详细的内容文档，要求内容丰富、结构清晰：
+        prompt = f"""你是一位专业的文档撰写专家。请为以下主题生成一份详细、专业、内容丰富的文档。
 
 主题：{title}
 提示：{hint}
 
-请生成完整的内容，包含：
-1. 标题和简介
-2. 详细内容（分章节、分点说明）
-3. 总结或建议
+请生成完整的内容，要求：
+1. 标题要吸引人，能准确概括主题
+2. 开篇要有引人入胜的引言，概述主题的重要性和背景
+3. 正文内容要分章节、分层次展开，每个章节要有：
+   - 清晰的小标题
+   - 详细的说明和论述
+   - 具体的案例、数据或事实支撑
+   - 每个要点要展开说明，不要只是简单列举
+4. 内容要有深度，避免泛泛而谈，要提供有价值的见解
+5. 语言要专业但通俗易懂，适合大众阅读
+6. 结尾要有总结和展望，给读者留下深刻印象
+7. 全文总字数建议在 1500-2500 字
 
-直接输出内容，不要添加其他说明。"""
+请直接输出文档内容，使用以下格式：
+# 主标题
+
+## 一、章节标题
+正文内容...
+
+### 1.1 小节标题
+详细内容...
+
+## 二、章节标题
+...
+
+## 总结
+总结内容..."""
 
         try:
             messages = [{"role": "user", "content": prompt}]
@@ -824,6 +845,10 @@ class DocumentAgent(BaseAgent):
         data = params.get("data", [])
         output_path = params.get("output", "")
         
+        if isinstance(data, str):
+            content = data
+            data = []
+        
         if not title:
             if "通讯录" in content or "联系人" in content:
                 title = "通讯录"
@@ -849,11 +874,64 @@ class DocumentAgent(BaseAgent):
             if isinstance(data, str):
                 content = data
             parsed = self._parse_excel_content(content)
-            if parsed:
+            if parsed and parsed.get("data") and len(parsed.get("data", [])) > 1:
                 headers = parsed.get("headers", headers)
                 data = parsed.get("data", data)
         
+        if not data or (isinstance(data, list) and len(data) == 0) or (isinstance(data, list) and len(data) <= 1):
+            logger.info(f"📊 数据为空或不足，调用LLM生成表格数据: {title}")
+            generated = await self._generate_excel_data_with_llm(title, content)
+            if generated and generated.get("data"):
+                headers = generated.get("headers", headers)
+                data = generated.get("data", data)
+        
         return await self._generate_xlsx(title, headers, data, output_path)
+    
+    async def _generate_excel_data_with_llm(self, title: str, hint: str) -> Dict:
+        """使用LLM生成Excel表格数据"""
+        llm = self._get_llm_gateway()
+        if not llm:
+            return {}
+        
+        prompt = f"""你是一位数据整理专家。请根据以下主题生成一份详细的Excel表格数据。
+
+主题：{title}
+提示：{hint}
+
+请生成表格数据，要求：
+1. 表头要清晰、专业，能准确描述每列数据
+2. 数据要真实、有代表性，至少包含 10-15 行数据
+3. 每行数据要完整，不要有空值
+4. 数据要有实际意义，能够体现主题特点
+
+请以JSON格式返回，格式如下：
+{{
+    "headers": ["列名1", "列名2", "列名3", ...],
+    "data": [
+        ["数据1", "数据2", "数据3", ...],
+        ["数据1", "数据2", "数据3", ...],
+        ...
+    ]
+}}
+
+请直接返回JSON，不要包含其他文字。"""
+
+        try:
+            import json
+            messages = [{"role": "user", "content": prompt}]
+            response = await llm.chat(messages)
+            content = response.content.strip()
+            
+            if content.startswith("```"):
+                lines = content.split("\n")
+                content = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
+            
+            result = json.loads(content)
+            logger.info(f"✅ LLM生成Excel数据完成，{len(result.get('data', []))} 行")
+            return result
+        except Exception as e:
+            logger.error(f"LLM生成Excel数据失败: {e}")
+            return {}
 
     def _parse_excel_content(self, content: str) -> Dict:
         """解析内容为表格数据"""
