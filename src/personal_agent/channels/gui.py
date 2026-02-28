@@ -751,6 +751,23 @@ class ChatWindow:
 
         layout.addStretch()
 
+        agent_mgr_btn = self.QPushButton("🤖 子智能体管理")
+        agent_mgr_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #6e6e80;
+                border: 1px solid #d9d9e3;
+                text-align: left;
+                padding: 8px 12px;
+                border-radius: 6px;
+            }
+            QPushButton:hover {
+                background-color: #ececf1;
+            }
+        """)
+        agent_mgr_btn.clicked.connect(self._show_agent_manager_dialog)
+        layout.addWidget(agent_mgr_btn)
+
         settings_btn = self.QPushButton("⚙️ 设置")
         settings_btn.setStyleSheet("""
             QPushButton {
@@ -2016,6 +2033,17 @@ class ChatWindow:
             logger.error(f"Failed to open settings dialog: {e}")
             from PyQt6.QtWidgets import QMessageBox
             QMessageBox.information(self.window, "设置", f"设置功能暂时不可用\n\n错误: {e}")
+    
+    def _show_agent_manager_dialog(self):
+        """Show agent manager dialog"""
+        try:
+            from .agent_manager_dialog import AgentManagerDialog
+            dialog = AgentManagerDialog(self.window)
+            dialog.exec()
+        except Exception as e:
+            logger.error(f"Failed to open agent manager dialog: {e}")
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.information(self.window, "子智能体管理", f"子智能体管理功能暂时不可用\n\n错误: {e}")
     
     def _show_music_minimized(self):
         """显示音乐播放器最小化条目"""
