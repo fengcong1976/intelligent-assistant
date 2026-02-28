@@ -142,6 +142,7 @@ class ToolBasedIntentParser:
 4. 【非常重要】如果系统提供了工具列表，必须从提供的工具中选择，不能选择其他工具
 5. 【非常重要】必须返回工具调用格式：tool_name(param1="value1", param2="value2")，不能返回自然语言
 6. 【非常重要】不能返回占位符或示例格式（如 tool_name(param1="value1")），必须返回实际的工具调用和参数值
+7. 【非常重要】如果没有合适的工具，直接用自然语言回答用户的问题，不要尝试调用不存在的工具
 
 【联系人信息提取规则 - 非常重要】
 当用户提到添加联系人时，必须提取以下信息：
@@ -174,6 +175,7 @@ class ToolBasedIntentParser:
 - 不能返回自然语言描述
 - 不能选择未提供的工具
 - 不能返回示例格式（如 tool_name(param1="value1")），必须返回实际工具调用
+- 如果没有合适的工具，直接用自然语言回答
 
 【单工具示例】"""
         
@@ -781,6 +783,14 @@ class ToolBasedIntentParser:
                         )
                     else:
                         logger.warning(f"⚠️ 未找到工具: {tool_name}")
+                        logger.info(f"💬 LLM 错误地调用了不存在的工具，返回友好提示")
+                        # 返回一个友好的错误消息
+                        return ToolCallResult(
+                            tool_name="general",
+                            agent_name="master",
+                            arguments={"message": user_input},
+                            answer=f"抱歉，我暂时没有「{tool_name}」这个功能。您可以问我其他问题，或者查看我能做什么。"
+                        )
                 
                 # 如果不是工具调用，返回 general
                 logger.info(f"💬 LLM 直接返回答案，不需要工具")
@@ -788,7 +798,7 @@ class ToolBasedIntentParser:
                 return ToolCallResult(
                     tool_name="general",
                     agent_name="master",
-                    arguments={"message": user_input, "answer": response.content},
+                    arguments={"message": user_input},
                     answer=response.content
                 )
             
@@ -925,28 +935,24 @@ class ToolBasedIntentParser:
         try:
             user_input_lower = user_input.lower().strip()
             
-            # 收集所有匹配的工具
             matched_tools = []
             matched_alias = None
             matched_params = {}
             extra_param = None
             
-            # 遍历所有工具，检查是否有完全匹配的别名
             for tool in self.registry.get_all_tools():
-                # 检查工具名称是否匹配
                 if tool.name.lower() == user_input_lower:
                     matched_tools.append(tool)
                     continue
                 
-                # 检查工具别名是否匹配
                 for alias in tool.aliases:
                     alias_lower = alias.lower()
-                    # 完全匹配
                     if alias_lower == user_input_lower:
                         matched_tools.append(tool)
                         matched_alias = alias
                         if tool.alias_params and alias in tool.alias_params:
-                            matched_params = tool.alias_params[alias]
+                            matched_params = tool.alias_params[alias].copy()
+                            logger.debug(f"📋 别名 '{alias}' 匹配参数: {matched_params}")
                         break
                     # 前缀匹配：用户输入以别名开头，后面跟着空格和参数
                     elif user_input_lower.startswith(alias_lower + " ") or user_input_lower.startswith(alias_lower + "　"):
@@ -1031,7 +1037,8 @@ class ToolBasedIntentParser:
             "ha_set_temperature": ["温度", "空调", "调节温度", "设置温度"],
             "ha_set_brightness": ["亮度", "灯光", "调节亮度", "设置亮度"],
             "ha_query_state": ["状态", "查询状态", "查看状态", "设备状态"],
-            "shopping_query": ["商品", "购物", "搜索商品", "买东西", "购买"]
+            "shopping_query": ["商品", "购物", "搜索商品", "买东西", "购买"],
+            "create_ppt": ["ppt", "PPT", "演示文稿", "幻灯片", "pptx", "制作ppt", "创建ppt", "生成ppt"]
         }
         
         matched_tools = []

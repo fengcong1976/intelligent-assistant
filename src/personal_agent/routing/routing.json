@@ -29,7 +29,8 @@
         {"name": "qq_bot_agent", "class": "QQBotAgent"},
         {"name": "llm_agent", "class": "LLMAgent"},
         {"name": "homeassistant_agent", "class": "HomeAssistantAgent"},
-        {"name": "shopping_agent", "class": "ShoppingAgent"}
+        {"name": "shopping_agent", "class": "ShoppingAgent"},
+        {"name": "ppt_agent", "class": "PPTAgent"}
     ],
     
     "intent_types": {
@@ -68,7 +69,9 @@
         "shopping_query": "shopping_agent",
         "price_compare": "shopping_agent",
         "deals_query": "shopping_agent",
-        "shopping_list": "shopping_agent"
+        "shopping_list": "shopping_agent",
+        "ppt_generation": "ppt_agent",
+        "create_ppt": "ppt_agent"
     },
     
     "agent_to_intent": {
@@ -98,7 +101,8 @@
         "qq_bot_agent": "qq_bot",
         "llm_agent": "llm_chat",
         "homeassistant_agent": "homeassistant",
-        "shopping_agent": "shopping_query"
+        "shopping_agent": "shopping_query",
+        "ppt_agent": "ppt_generation"
     },
     
     "task_to_agent": {
@@ -221,7 +225,11 @@
         "update_item": "shopping_agent",
         "delete_item": "shopping_agent",
         "toggle_item": "shopping_agent",
-        "recommend_products": "shopping_agent"
+        "recommend_products": "shopping_agent",
+        "create_ppt": "ppt_agent",
+        "ppt_generation": "ppt_agent",
+        "generate_ppt": "ppt_agent",
+        "audio_device_control": "os_agent"
     },
     
     "valid_actions": {
@@ -231,7 +239,7 @@
         "weather_agent": ["current_weather", "weather_forecast"],
         "contact_agent": ["add", "search", "delete", "list", "list_contacts", "update", "extract"],
         "file_agent": ["disk_space", "list", "search", "list_drives", "largest_folder"],
-        "os_agent": ["volume", "volume_up", "volume_down", "volume_mute", "volume_unmute", "lock", "screenshot", "sleep", "shutdown", "restart", "system_info", "cpu_info", "memory_info", "disk_info", "network_info", "wifi_status", "bluetooth_status", "battery_status", "time_now", "date_today", "clean_temp", "empty_recycle", "monitor_off", "brightness_get", "brightness_set", "brightness_up", "brightness_down"],
+        "os_agent": ["volume", "volume_up", "volume_down", "volume_mute", "volume_unmute", "lock", "screenshot", "sleep", "shutdown", "restart", "system_info", "cpu_info", "memory_info", "disk_info", "network_info", "wifi_status", "bluetooth_status", "battery_status", "time_now", "date_today", "clean_temp", "empty_recycle", "monitor_off", "brightness_get", "brightness_set", "brightness_up", "brightness_down", "audio_device_control"],
         "app_agent": ["open", "close", "list", "open_default"],
         "download_agent": ["download", "batch_download", "pause", "resume", "cancel", "list"],
         "crawler_agent": ["search", "crawl", "scrape", "extract"],
@@ -250,7 +258,8 @@
         "qq_bot_agent": ["start", "stop", "status", "configure", "send_message"],
         "llm_agent": ["chat", "clear_history"],
         "homeassistant_agent": ["turn_on", "turn_off", "toggle", "set_brightness", "set_temperature", "set_hvac_mode", "execute_scene", "query_state", "list_entities", "open_dashboard"],
-        "shopping_agent": ["search_products", "compare_prices", "query_deals", "create_list", "list_lists", "update_list", "delete_list", "add_item", "update_item", "delete_item", "toggle_item", "recommend_products"]
+        "shopping_agent": ["search_products", "compare_prices", "query_deals", "create_list", "list_lists", "update_list", "delete_list", "add_item", "update_item", "delete_item", "toggle_item", "recommend_products"],
+        "ppt_agent": ["create_ppt", "create_ppt_from_topic", "generate_ppt"]
     },
     
     "default_actions": {
@@ -279,7 +288,8 @@
         "qq_bot_agent": "start",
         "llm_agent": "chat",
         "homeassistant_agent": "query_state",
-        "shopping_agent": "search_products"
+        "shopping_agent": "search_products",
+        "ppt_agent": "create_ppt"
     },
     
     "file_type_mapping": {
@@ -308,6 +318,8 @@
         ".js": "developer_agent",
         ".ts": "developer_agent",
         ".json": "file_agent",
-        ".md": "file_agent"
+        ".md": "file_agent",
+        ".pptx": "ppt_agent",
+        ".ppt": "ppt_agent"
     }
 }

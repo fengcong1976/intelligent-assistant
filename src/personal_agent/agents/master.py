@@ -60,6 +60,7 @@ class MasterAgent(BaseAgent):
         "app_agent": (".app_agent", "AppAgent"),
         "os_agent": (".os_agent", "OSAgent"),
         "image_converter_agent": (".image_converter_agent", "ImageConverterAgent"),
+        "ppt_agent": (".ppt_agent", "PPTAgent"),
     }
     
     _pending_skill_confirmation: Dict[str, Dict] = {}
@@ -2264,7 +2265,7 @@ class MasterAgent(BaseAgent):
                 elif action == "reload_agents":
                     return self._reload_agents()
             
-            if intent_type in ["save_document", "send_email", "contact_list", "contact_add", "contact_lookup", "generate_image", "query_stock", "query_index", "stock_query", "query_price", "query_kline", "get_news", "disk_space", "find_file", "clipboard_write", "take_screenshot"]:
+            if intent_type in ["save_document", "send_email", "contact_list", "contact_add", "contact_lookup", "generate_image", "query_stock", "query_index", "stock_query", "query_price", "query_kline", "get_news", "disk_space", "find_file", "clipboard_write", "take_screenshot", "create_ppt", "create_ppt_from_topic", "audio_device_control"]:
                 task = Task(
                     type=intent_type,
                     content=request,

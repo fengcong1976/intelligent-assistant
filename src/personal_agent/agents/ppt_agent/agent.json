@@ -1,0 +1,33 @@
+{
+  "name": "ppt_agent",
+  "display_name": "PPT生成",
+  "icon": "📊",
+  "description": "PPT生成智能体 - 根据主题或大纲自动生成演示文稿",
+  "version": "1.0.0",
+  "priority": 50,
+  "capabilities": [
+    "ppt_generation",
+    "content_creation",
+    "document_export"
+  ],
+  "actions": [
+    {
+      "name": "create_ppt",
+      "description": "根据标题和内容创建PPT文件",
+      "params": {
+        "title": "PPT标题",
+        "slides": "幻灯片内容列表",
+        "output_path": "输出文件路径（可选）"
+      }
+    },
+    {
+      "name": "create_ppt_from_topic",
+      "description": "根据主题自动生成PPT",
+      "params": {
+        "topic": "主题",
+        "num_slides": "幻灯片数量（默认5页）",
+        "output_path": "输出文件路径（可选）"
+      }
+    }
+  ]
+}

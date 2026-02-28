@@ -19,136 +19,6 @@ class OSAgent(BaseAgent):
     """操作系统智能体 - 全面控制系统功能"""
     
     PRIORITY = 1
-    KEYWORD_MAPPINGS = {
-        # 音量控制
-        "关机": ("shutdown", {}),
-        "重启": ("restart", {}),
-        "注销": ("logout", {}),
-        "锁屏": ("lock", {}),
-        "休眠": ("sleep", {}),
-        "睡眠": ("sleep", {}),
-        "截图": ("screenshot", {}),
-        "截屏": ("screenshot", {}),
-        "录屏": ("screen_record", {}),
-        "屏幕录制": ("screen_record", {}),
-        "音量": ("volume_get", {}),
-        "当前音量": ("volume_get", {}),
-        "静音": ("volume_mute", {}),
-        "取消静音": ("volume_unmute", {}),
-        "声音大一点": ("volume_up", {}),
-        "声音小一点": ("volume_down", {}),
-        "大声点": ("volume_up", {}),
-        "小声点": ("volume_down", {}),
-        "音量大一点": ("volume_up", {}),
-        "音量小一点": ("volume_down", {}),
-        "音量调高点": ("volume_up", {}),
-        "音量调低点": ("volume_down", {}),
-        "调大音量": ("volume_up", {}),
-        "调小音量": ("volume_down", {}),
-        "增加音量": ("volume_up", {}),
-        "降低音量": ("volume_down", {}),
-        "音量加": ("volume_up", {}),
-        "音量减": ("volume_down", {}),
-        "把声音调大": ("volume_up", {}),
-        "把声音调小": ("volume_down", {}),
-        "把音量调大": ("volume_up", {}),
-        "把音量调小": ("volume_down", {}),
-        "声音调大": ("volume_up", {}),
-        "声音调小": ("volume_down", {}),
-        "音量调大": ("volume_up", {}),
-        "音量调小": ("volume_down", {}),
-        "调大声": ("volume_up", {}),
-        "调小声": ("volume_down", {}),
-        "声音大": ("volume_up", {}),
-        "声音小": ("volume_down", {}),
-        # WiFi和网络
-        "WiFi": ("wifi_status", {}),
-        "WiFi状态": ("wifi_status", {}),
-        "网络": ("network_info", {}),
-        "网络状态": ("network_info", {}),
-        "蓝牙": ("bluetooth_status", {}),
-        "蓝牙状态": ("bluetooth_status", {}),
-        # 音频设备
-        "音频设备": ("audio_list", {}),
-        "声音设备": ("audio_list", {}),
-        "音频设备列表": ("audio_list", {}),
-        "声音设备列表": ("audio_list", {}),
-        "列出音频设备": ("audio_list", {}),
-        "列出声音设备": ("audio_list", {}),
-        "切换音频输出": ("audio_output_switch", {}),
-        "切换声音输出": ("audio_output_switch", {}),
-        "切换扬声器": ("audio_output_switch", {}),
-        "切换输出设备": ("audio_output_switch", {}),
-        "切换音频输入": ("audio_input_switch", {}),
-        "切换声音输入": ("audio_input_switch", {}),
-        "切换麦克风": ("audio_input_switch", {}),
-        "切换输入设备": ("audio_input_switch", {}),
-        "默认扬声器": ("audio_output_default", {}),
-        "默认麦克风": ("audio_input_default", {}),
-        # 电池和电源
-        "电池": ("battery_status", {}),
-        "电量": ("battery_status", {}),
-        "电池状态": ("battery_status", {}),
-        # 系统信息
-        "系统信息": ("system_info", {}),
-        "电脑信息": ("system_info", {}),
-        "CPU": ("cpu_info", {}),
-        "CPU使用率": ("cpu_info", {}),
-        "内存": ("memory_info", {}),
-        "内存使用": ("memory_info", {}),
-        "磁盘": ("disk_info", {}),
-        "磁盘空间": ("disk_info", {}),
-        "硬盘空间": ("disk_info", {}),
-        # 进程管理
-        "进程列表": ("process_list", {}),
-        "运行中的程序": ("process_list", {}),
-        "进程": ("process_list", {}),
-        # 剪贴板
-        "剪贴板": ("clipboard_get", {}),
-        "粘贴板": ("clipboard_get", {}),
-        "复制的内容": ("clipboard_get", {}),
-        # 应用程序
-        "打开": ("app_open", {}),
-        "运行": ("app_open", {}),
-        "启动": ("app_open", {}),
-        "关闭程序": ("app_close", {}),
-        "结束程序": ("app_kill", {}),
-        "强制关闭": ("app_kill", {}),
-        # 窗口管理
-        "最小化": ("window_minimize", {}),
-        "最大化": ("window_maximize", {}),
-        "关闭窗口": ("window_close", {}),
-        # 服务管理
-        "服务列表": ("service_list", {}),
-        "启动服务": ("service_start", {}),
-        "停止服务": ("service_stop", {}),
-        # 系统设置
-        "壁纸": ("wallpaper_get", {}),
-        "桌面壁纸": ("wallpaper_get", {}),
-        "换壁纸": ("wallpaper_set", {}),
-        "更换壁纸": ("wallpaper_set", {}),
-        # 时间和日期
-        "现在几点": ("time_now", {}),
-        "当前时间": ("time_now", {}),
-        "现在时间": ("time_now", {}),
-        "今天日期": ("date_today", {}),
-        "今天是几号": ("date_today", {}),
-        # 清理和维护
-        "清理垃圾": ("clean_temp", {}),
-        "清理临时文件": ("clean_temp", {}),
-        "清空回收站": ("empty_recycle", {}),
-        "回收站": ("empty_recycle", {}),
-        # 显示器
-        "亮度": ("brightness_get", {}),
-        "屏幕亮度": ("brightness_get", {}),
-        "调亮": ("brightness_up", {}),
-        "调暗": ("brightness_down", {}),
-        "关闭显示器": ("monitor_off", {}),
-        "息屏": ("monitor_off", {}),
-        # 通知
-        "通知": ("notification", {}),
-        "提醒我": ("notification", {}),
-    }
 
     def __init__(self):
         super().__init__(
@@ -191,145 +61,145 @@ class OSAgent(BaseAgent):
                 "系统通知", "电脑通知", "通知", "提醒我"
             ],
             alias_params={
-                "系统关机": {"command": "关机"},
-                "电脑关机": {"command": "关机"},
-                "关电脑": {"command": "关机"},
-                "关机": {"command": "关机"},
-                "关闭电脑": {"command": "关机"},
-                "关闭系统": {"command": "关机"},
-                "系统重启": {"command": "重启"},
-                "电脑重启": {"command": "重启"},
-                "重启电脑": {"command": "重启"},
-                "重启": {"command": "重启"},
-                "重启系统": {"command": "重启"},
-                "系统注销": {"command": "注销"},
-                "注销系统": {"command": "注销"},
-                "注销": {"command": "注销"},
-                "退出登录": {"command": "注销"},
-                "锁屏": {"command": "锁屏"},
-                "锁住屏幕": {"command": "锁屏"},
-                "锁定屏幕": {"command": "锁屏"},
-                "锁电脑": {"command": "锁屏"},
-                "系统休眠": {"command": "休眠"},
-                "电脑休眠": {"command": "休眠"},
-                "休眠": {"command": "休眠"},
-                "睡眠": {"command": "休眠"},
-                "系统睡眠": {"command": "休眠"},
-                "电脑睡眠": {"command": "休眠"},
-                "系统截图": {"command": "截图"},
-                "电脑截图": {"command": "截图"},
-                "截图": {"command": "截图"},
-                "截屏": {"command": "截图"},
-                "抓屏": {"command": "截图"},
-                "屏幕截图": {"command": "截图"},
-                "系统录屏": {"command": "录屏"},
-                "电脑录屏": {"command": "录屏"},
-                "录屏": {"command": "录屏"},
-                "屏幕录制": {"command": "录屏"},
-                "录制屏幕": {"command": "录屏"},
-                "系统音量": {"command": "查看音量"},
-                "电脑音量": {"command": "查看音量"},
-                "音量": {"command": "查看音量"},
-                "当前音量": {"command": "查看音量"},
-                "查看音量": {"command": "查看音量"},
-                "系统静音": {"command": "静音"},
-                "电脑静音": {"command": "静音"},
-                "静音": {"command": "静音"},
-                "静音系统": {"command": "静音"},
-                "静音电脑": {"command": "静音"},
-                "取消静音": {"command": "取消静音"},
-                "取消系统静音": {"command": "取消静音"},
-                "取消电脑静音": {"command": "取消静音"},
-                "系统音量大一点": {"command": "音量调高"},
-                "电脑音量大一点": {"command": "音量调高"},
-                "声音大一点": {"command": "音量调高"},
-                "大声点": {"command": "音量调高"},
-                "调大音量": {"command": "音量调高"},
-                "系统音量小一点": {"command": "音量调低"},
-                "电脑音量小一点": {"command": "音量调低"},
-                "声音小一点": {"command": "音量调低"},
-                "小声点": {"command": "音量调低"},
-                "调小音量": {"command": "音量调低"},
-                "系统WiFi": {"command": "查看WiFi"},
-                "电脑WiFi": {"command": "查看WiFi"},
-                "WiFi": {"command": "查看WiFi"},
-                "WiFi状态": {"command": "查看WiFi"},
-                "查看WiFi": {"command": "查看WiFi"},
-                "系统网络": {"command": "查看网络"},
-                "电脑网络": {"command": "查看网络"},
-                "网络": {"command": "查看网络"},
-                "网络状态": {"command": "查看网络"},
-                "查看网络": {"command": "查看网络"},
-                "系统蓝牙": {"command": "查看蓝牙"},
-                "电脑蓝牙": {"command": "查看蓝牙"},
-                "蓝牙": {"command": "查看蓝牙"},
-                "蓝牙状态": {"command": "查看蓝牙"},
-                "查看蓝牙": {"command": "查看蓝牙"},
-                "系统电池": {"command": "查看电池"},
-                "电脑电池": {"command": "查看电池"},
-                "电池": {"command": "查看电池"},
-                "电量": {"command": "查看电池"},
-                "电池状态": {"command": "查看电池"},
-                "查看电池": {"command": "查看电池"},
-                "系统信息": {"command": "查看系统信息"},
-                "电脑信息": {"command": "查看系统信息"},
-                "系统详情": {"command": "查看系统信息"},
-                "电脑详情": {"command": "查看系统信息"},
-                "查看系统信息": {"command": "查看系统信息"},
-                "系统配置": {"command": "查看系统信息"},
-                "电脑配置": {"command": "查看系统信息"},
-                "系统版本": {"command": "查看系统信息"},
-                "电脑版本": {"command": "查看系统信息"},
-                "系统设置": {"command": "打开设置"},
-                "电脑设置": {"command": "打开设置"},
-                "打开设置": {"command": "打开设置"},
-                "打开系统设置": {"command": "打开设置"},
-                "打开电脑设置": {"command": "打开设置"},
-                "系统CPU": {"command": "查看CPU"},
-                "电脑CPU": {"command": "查看CPU"},
-                "CPU": {"command": "查看CPU"},
-                "CPU使用率": {"command": "查看CPU"},
-                "查看CPU": {"command": "查看CPU"},
-                "系统内存": {"command": "查看内存"},
-                "电脑内存": {"command": "查看内存"},
-                "内存": {"command": "查看内存"},
-                "内存使用": {"command": "查看内存"},
-                "查看内存": {"command": "查看内存"},
-                "系统磁盘": {"command": "查看磁盘"},
-                "电脑磁盘": {"command": "查看磁盘"},
-                "磁盘": {"command": "查看磁盘"},
-                "磁盘空间": {"command": "查看磁盘"},
-                "硬盘空间": {"command": "查看磁盘"},
-                "查看磁盘": {"command": "查看磁盘"},
-                "系统进程": {"command": "查看进程"},
-                "电脑进程": {"command": "查看进程"},
-                "进程列表": {"command": "查看进程"},
-                "运行中的程序": {"command": "查看进程"},
-                "查看进程": {"command": "查看进程"},
-                "系统剪贴板": {"command": "查看剪贴板"},
-                "电脑剪贴板": {"command": "查看剪贴板"},
-                "剪贴板": {"command": "查看剪贴板"},
-                "粘贴板": {"command": "查看剪贴板"},
-                "查看剪贴板": {"command": "查看剪贴板"},
-                "清理系统垃圾": {"command": "清理垃圾"},
-                "清理电脑垃圾": {"command": "清理垃圾"},
-                "清理垃圾": {"command": "清理垃圾"},
-                "清理临时文件": {"command": "清理垃圾"},
-                "清空回收站": {"command": "清空回收站"},
-                "清理回收站": {"command": "清空回收站"},
-                "回收站": {"command": "清空回收站"},
-                "系统亮度": {"command": "查看亮度"},
-                "电脑亮度": {"command": "查看亮度"},
-                "屏幕亮度": {"command": "查看亮度"},
-                "亮度": {"command": "查看亮度"},
-                "查看亮度": {"command": "查看亮度"},
-                "关闭显示器": {"command": "息屏"},
-                "息屏": {"command": "息屏"},
-                "关闭屏幕": {"command": "息屏"},
-                "系统通知": {"command": "查看通知"},
-                "电脑通知": {"command": "查看通知"},
-                "通知": {"command": "查看通知"},
-                "提醒我": {"command": "设置提醒"}
+                "系统关机": {"command": "shutdown"},
+                "电脑关机": {"command": "shutdown"},
+                "关电脑": {"command": "shutdown"},
+                "关机": {"command": "shutdown"},
+                "关闭电脑": {"command": "shutdown"},
+                "关闭系统": {"command": "shutdown"},
+                "系统重启": {"command": "restart"},
+                "电脑重启": {"command": "restart"},
+                "重启电脑": {"command": "restart"},
+                "重启": {"command": "restart"},
+                "重启系统": {"command": "restart"},
+                "系统注销": {"command": "logout"},
+                "注销系统": {"command": "logout"},
+                "注销": {"command": "logout"},
+                "退出登录": {"command": "logout"},
+                "锁屏": {"command": "lock"},
+                "锁住屏幕": {"command": "lock"},
+                "锁定屏幕": {"command": "lock"},
+                "锁电脑": {"command": "lock"},
+                "系统休眠": {"command": "sleep"},
+                "电脑休眠": {"command": "sleep"},
+                "休眠": {"command": "sleep"},
+                "睡眠": {"command": "sleep"},
+                "系统睡眠": {"command": "sleep"},
+                "电脑睡眠": {"command": "sleep"},
+                "系统截图": {"command": "screenshot"},
+                "电脑截图": {"command": "screenshot"},
+                "截图": {"command": "screenshot"},
+                "截屏": {"command": "screenshot"},
+                "抓屏": {"command": "screenshot"},
+                "屏幕截图": {"command": "screenshot"},
+                "系统录屏": {"command": "screen_record"},
+                "电脑录屏": {"command": "screen_record"},
+                "录屏": {"command": "screen_record"},
+                "屏幕录制": {"command": "screen_record"},
+                "录制屏幕": {"command": "screen_record"},
+                "系统音量": {"command": "volume_get"},
+                "电脑音量": {"command": "volume_get"},
+                "音量": {"command": "volume_get"},
+                "当前音量": {"command": "volume_get"},
+                "查看音量": {"command": "volume_get"},
+                "系统静音": {"command": "volume_mute"},
+                "电脑静音": {"command": "volume_mute"},
+                "静音": {"command": "volume_mute"},
+                "静音系统": {"command": "volume_mute"},
+                "静音电脑": {"command": "volume_mute"},
+                "取消静音": {"command": "volume_unmute"},
+                "取消系统静音": {"command": "volume_unmute"},
+                "取消电脑静音": {"command": "volume_unmute"},
+                "系统音量大一点": {"command": "volume_up"},
+                "电脑音量大一点": {"command": "volume_up"},
+                "声音大一点": {"command": "volume_up"},
+                "大声点": {"command": "volume_up"},
+                "调大音量": {"command": "volume_up"},
+                "系统音量小一点": {"command": "volume_down"},
+                "电脑音量小一点": {"command": "volume_down"},
+                "声音小一点": {"command": "volume_down"},
+                "小声点": {"command": "volume_down"},
+                "调小音量": {"command": "volume_down"},
+                "系统WiFi": {"command": "wifi_status"},
+                "电脑WiFi": {"command": "wifi_status"},
+                "WiFi": {"command": "wifi_status"},
+                "WiFi状态": {"command": "wifi_status"},
+                "查看WiFi": {"command": "wifi_status"},
+                "系统网络": {"command": "network_info"},
+                "电脑网络": {"command": "network_info"},
+                "网络": {"command": "network_info"},
+                "网络状态": {"command": "network_info"},
+                "查看网络": {"command": "network_info"},
+                "系统蓝牙": {"command": "bluetooth_status"},
+                "电脑蓝牙": {"command": "bluetooth_status"},
+                "蓝牙": {"command": "bluetooth_status"},
+                "蓝牙状态": {"command": "bluetooth_status"},
+                "查看蓝牙": {"command": "bluetooth_status"},
+                "系统电池": {"command": "battery_status"},
+                "电脑电池": {"command": "battery_status"},
+                "电池": {"command": "battery_status"},
+                "电量": {"command": "battery_status"},
+                "电池状态": {"command": "battery_status"},
+                "查看电池": {"command": "battery_status"},
+                "系统信息": {"command": "system_info"},
+                "电脑信息": {"command": "system_info"},
+                "系统详情": {"command": "system_info"},
+                "电脑详情": {"command": "system_info"},
+                "查看系统信息": {"command": "system_info"},
+                "系统配置": {"command": "system_info"},
+                "电脑配置": {"command": "system_info"},
+                "系统版本": {"command": "system_info"},
+                "电脑版本": {"command": "system_info"},
+                "系统设置": {"command": "app_open"},
+                "电脑设置": {"command": "app_open"},
+                "打开设置": {"command": "app_open"},
+                "打开系统设置": {"command": "app_open"},
+                "打开电脑设置": {"command": "app_open"},
+                "系统CPU": {"command": "cpu_info"},
+                "电脑CPU": {"command": "cpu_info"},
+                "CPU": {"command": "cpu_info"},
+                "CPU使用率": {"command": "cpu_info"},
+                "查看CPU": {"command": "cpu_info"},
+                "系统内存": {"command": "memory_info"},
+                "电脑内存": {"command": "memory_info"},
+                "内存": {"command": "memory_info"},
+                "内存使用": {"command": "memory_info"},
+                "查看内存": {"command": "memory_info"},
+                "系统磁盘": {"command": "disk_info"},
+                "电脑磁盘": {"command": "disk_info"},
+                "磁盘": {"command": "disk_info"},
+                "磁盘空间": {"command": "disk_info"},
+                "硬盘空间": {"command": "disk_info"},
+                "查看磁盘": {"command": "disk_info"},
+                "系统进程": {"command": "process_list"},
+                "电脑进程": {"command": "process_list"},
+                "进程列表": {"command": "process_list"},
+                "运行中的程序": {"command": "process_list"},
+                "查看进程": {"command": "process_list"},
+                "系统剪贴板": {"command": "clipboard_get"},
+                "电脑剪贴板": {"command": "clipboard_get"},
+                "剪贴板": {"command": "clipboard_get"},
+                "粘贴板": {"command": "clipboard_get"},
+                "查看剪贴板": {"command": "clipboard_get"},
+                "清理系统垃圾": {"command": "clean_temp"},
+                "清理电脑垃圾": {"command": "clean_temp"},
+                "清理垃圾": {"command": "clean_temp"},
+                "清理临时文件": {"command": "clean_temp"},
+                "清空回收站": {"command": "empty_recycle"},
+                "清理回收站": {"command": "empty_recycle"},
+                "回收站": {"command": "empty_recycle"},
+                "系统亮度": {"command": "brightness_get"},
+                "电脑亮度": {"command": "brightness_get"},
+                "屏幕亮度": {"command": "brightness_get"},
+                "亮度": {"command": "brightness_get"},
+                "查看亮度": {"command": "brightness_get"},
+                "关闭显示器": {"command": "monitor_off"},
+                "息屏": {"command": "monitor_off"},
+                "关闭屏幕": {"command": "monitor_off"},
+                "系统通知": {"command": "notification"},
+                "电脑通知": {"command": "notification"},
+                "通知": {"command": "notification"},
+                "提醒我": {"command": "notification"}
             },
             parameters={
                 "type": "object",
@@ -423,6 +293,34 @@ class OSAgent(BaseAgent):
             category="system"
         )
         
+        self.register_capability(
+            capability="time_now",
+            description="获取当前时间。当用户问'现在几点'、'当前时间'、'现在时间'时调用此工具。",
+            aliases=[
+                "现在几点", "当前时间", "现在时间", "几点了", "几点"
+            ],
+            parameters={
+                "type": "object",
+                "properties": {},
+                "required": []
+            },
+            category="system"
+        )
+        
+        self.register_capability(
+            capability="date_today",
+            description="获取今天的日期。当用户问'今天几号'、'今天日期'、'今天是几号'时调用此工具。",
+            aliases=[
+                "今天几号", "今天日期", "今天是几号", "几号了", "几号"
+            ],
+            parameters={
+                "type": "object",
+                "properties": {},
+                "required": []
+            },
+            category="system"
+        )
+        
         self.system = platform.system()
         logger.info(f"🖥️ 操作系统智能体已初始化 (系统: {self.system})")
 
@@ -441,10 +339,6 @@ class OSAgent(BaseAgent):
             action = self._parse_general_action(params.get("text", ""))
         
         action = action.lower()
-        
-        if action in self.KEYWORD_MAPPINGS:
-            action, extra_params = self.KEYWORD_MAPPINGS[action]
-            params.update(extra_params)
 
         logger.info(f"🖥️ OS Agent 执行: {action}")
 
@@ -592,15 +486,40 @@ class OSAgent(BaseAgent):
             # ==================== 音频设备控制 ====================
             elif action in ("audio_list", "audio_device_control"):
                 operation = params.get("operation", "list")
-                if operation == "list":
+                
+                operation_mapping = {
+                    "list": "list",
+                    "列出": "list",
+                    "列表": "list",
+                    "switch_output": "switch_output",
+                    "切换输出": "switch_output",
+                    "切换音频输出": "switch_output",
+                    "换音频输出": "switch_output",
+                    "换输出": "switch_output",
+                    "切换扬声器": "switch_output",
+                    "switch_input": "switch_input",
+                    "切换输入": "switch_input",
+                    "切换音频输入": "switch_input",
+                    "换音频输入": "switch_input",
+                    "换输入": "switch_input",
+                    "切换麦克风": "switch_input",
+                    "default_output": "default_output",
+                    "默认输出": "default_output",
+                    "default_input": "default_input",
+                    "默认输入": "default_input",
+                }
+                
+                normalized_operation = operation_mapping.get(operation.lower(), operation.lower())
+                
+                if normalized_operation == "list":
                     return await self._list_audio_devices()
-                elif operation == "switch_output":
+                elif normalized_operation == "switch_output":
                     return await self._switch_audio_output(params.get("device"))
-                elif operation == "switch_input":
+                elif normalized_operation == "switch_input":
                     return await self._switch_audio_input(params.get("device"))
-                elif operation == "default_output":
+                elif normalized_operation == "default_output":
                     return await self._set_default_audio_output(params.get("device"))
-                elif operation == "default_input":
+                elif normalized_operation == "default_input":
                     return await self._set_default_audio_input(params.get("device"))
                 else:
                     return await self._list_audio_devices()
@@ -707,62 +626,6 @@ class OSAgent(BaseAgent):
             return "system_info"
         
         return "help"
-    
-    def _get_help(self) -> str:
-        """获取帮助信息"""
-        return """🖥️ 系统智能体支持的操作：
-
-📌 音量控制：
-• 静音 / 取消静音 - 系统静音控制
-• 声音大一点 / 声音小一点 - 调节音量
-• 音量 - 查看当前音量
-
-📌 音频设备：
-• 音频设备 / 声音设备 - 列出所有音频设备
-• 切换音频输出 [设备名] - 切换扬声器
-• 切换音频输入 [设备名] - 切换麦克风
-
-📌 系统电源：
-• 关机 / 重启 / 注销 / 锁屏 / 休眠
-
-📌 显示器：
-• 截图 / 截屏 - 截取屏幕
-• 关闭显示器 / 息屏
-• 亮度 / 调亮 / 调暗
-
-📌 网络状态：
-• WiFi状态 / 网络状态
-• 蓝牙状态 / 电池状态
-
-📌 系统信息：
-• 系统信息 / CPU / 内存 / 磁盘
-
-📌 进程管理：
-• 进程列表 / 运行中的程序
-• 关闭程序 [名称] / 强制关闭 [名称]
-
-📌 应用程序：
-• 打开 [程序名] - 如：打开记事本
-• 关闭程序 [程序名]
-
-📌 窗口管理：
-• 最小化 / 最大化 / 关闭窗口
-
-📌 剪贴板：
-• 剪贴板 - 查看剪贴板内容
-
-📌 服务管理：
-• 服务列表 / 启动服务 / 停止服务
-
-📌 系统设置：
-• 壁纸 / 换壁纸 [路径]
-
-📌 清理维护：
-• 清理垃圾 / 清空回收站
-
-📌 其他：
-• 现在几点 / 今天日期
-• 通知 [内容] - 发送系统通知"""
 
     async def _run_command(self, command: str, shell: bool = True) -> tuple:
         """运行系统命令"""
