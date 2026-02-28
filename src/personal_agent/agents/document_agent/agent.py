@@ -681,13 +681,12 @@ class DocumentAgent(BaseAgent):
         excel_keywords = ["报表", "表格", "数据表", "信息表", "通讯录", "名单", "清单", "列表", "财务", "销售", "库存", "员工", "产品", "价格"]
         is_excel_like = any(kw in title for kw in excel_keywords)
         
-        if not suffix:
-            if is_excel_like:
-                suffix = ".xlsx"
-                output_path = output_path.with_suffix(suffix)
-            else:
-                suffix = ".docx"
-                output_path = output_path.with_suffix(suffix)
+        if is_excel_like:
+            suffix = ".xlsx"
+            output_path = output_path.with_suffix(suffix)
+        elif not suffix:
+            suffix = ".docx"
+            output_path = output_path.with_suffix(suffix)
         
         if not content:
             if suffix in [".xlsx", ".xls"]:
