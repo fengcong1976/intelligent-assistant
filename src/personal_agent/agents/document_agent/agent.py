@@ -716,84 +716,23 @@ class DocumentAgent(BaseAgent):
 
     async def _generate_excel(self, content: str, output_path: Path) -> str:
         """生成Excel文件"""
-        try:
-            import openpyxl
-            from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
-        except ImportError:
-            return "❌ 需要安装 openpyxl 库: pip install openpyxl"
+        title = output_path.stem if output_path else "数据表格"
         
-        try:
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.title = "联系人"
-            
-            header_font = Font(bold=True, size=12)
-            header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-            header_font_white = Font(bold=True, size=12, color="FFFFFF")
-            thin_border = Border(
-                left=Side(style='thin'),
-                right=Side(style='thin'),
-                top=Side(style='thin'),
-                bottom=Side(style='thin')
-            )
-            
-            ws['A1'] = '姓名'
-            ws['B1'] = '邮箱'
-            ws['C1'] = '关系'
-            
-            for col in ['A', 'B', 'C']:
-                cell = ws[f'{col}1']
-                cell.font = header_font_white
-                cell.fill = header_fill
-                cell.alignment = Alignment(horizontal='center', vertical='center')
-                cell.border = thin_border
-            
-            import re
-            lines = content.strip().split('\n')
-            row = 2
-            
-            for line in lines:
-                line = line.strip()
-                if not line:
-                    continue
-                
-                if ',' in line:
-                    parts = line.split(',')
-                    name = parts[0].strip() if len(parts) > 0 else ""
-                    email = parts[1].strip() if len(parts) > 1 else ""
-                    relation = parts[2].strip() if len(parts) > 2 else ""
-                else:
-                    name_match = re.search(r'[•·\-\*]\s*([^\s📧👥]+)', line)
-                    email_match = re.search(r'📧\s*([^\s👥]+)', line)
-                    relation_match = re.search(r'👥\s*(.+?)(?:\s*$)', line)
-                    
-                    name = name_match.group(1).strip() if name_match else ""
-                    email = email_match.group(1).strip() if email_match else ""
-                    relation = relation_match.group(1).strip() if relation_match else ""
-                
-                if name:
-                    ws[f'A{row}'] = name
-                    ws[f'B{row}'] = email
-                    ws[f'C{row}'] = relation
-                    
-                    for col in ['A', 'B', 'C']:
-                        cell = ws[f'{col}{row}']
-                        cell.border = thin_border
-                        cell.alignment = Alignment(vertical='center')
-                    
-                    row += 1
-            
-            ws.column_dimensions['A'].width = 15
-            ws.column_dimensions['B'].width = 30
-            ws.column_dimensions['C'].width = 12
-            
-            wb.save(str(output_path))
-            logger.info(f"✅ Excel文档已生成: {output_path}")
-            return f"✅ 已生成Excel文档\n文件路径: {output_path}"
-            
-        except Exception as e:
-            logger.error(f"生成Excel失败: {e}")
-            return f"❌ 生成Excel失败: {e}"
+        parsed = self._parse_excel_content(content) if content else None
+        headers = []
+        data = []
+        
+        if parsed and parsed.get("data") and len(parsed.get("data", [])) > 1:
+            headers = parsed.get("headers", [])
+            data = parsed.get("data", [])
+        else:
+            logger.info(f"📊 数据为空或不足，调用LLM生成表格数据: {title}")
+            generated = await self._generate_excel_data_with_llm(title, content)
+            if generated and generated.get("data"):
+                headers = generated.get("headers", [])
+                data = generated.get("data", [])
+        
+        return await self._generate_xlsx(title, headers, data, output_path)
 
     async def _generate_pdf_from_content(self, content: str, output_path: Path) -> str:
         """从内容生成PDF"""
